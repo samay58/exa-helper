@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bobby AI Assistant</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f9fafb;
+      --text-primary: #1a1a1a;
+      --text-secondary: #6b7280;
+      --border: #e5e7eb;
+      --accent-gradient: linear-gradient(135deg, #FF9472 0%, #F2709C 100%);
+      --accent-primary: #FF9472;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2a2a2a;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+        --border: #4b5563;
+        --accent-gradient: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
+        --accent-primary: #7C3AED;
+      }
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 320px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    
+    .header {
+      padding: 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    
+    .header p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .info-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .info-box h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .info-box p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+      background: var(--accent-gradient);
+      color: white;
+      border-color: transparent;
+      transform: translateY(-1px);
+    }
+    
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: white;
+      border-color: transparent;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    .stat {
+      text-align: center;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent-primary);
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Bobby AI Assistant</h1>
+    <p>Your intelligent reading companion</p>
+  </div>
+  
+  <div class="content">
+    <div class="info-box">
+      <h3>
+        <span>💡</span>
+        How to use Bobby
+      </h3>
+      <p>
+        Simply highlight any text on a webpage or PDF to see the Bobby button. 
+        Click it to get instant AI-powered insights, explanations, and fact-checks.
+      </p>
+    </div>
+    
+    <div class="actions">
+      <a href="#" class="btn btn-primary" id="options-btn">
+        <span>⚙️</span>
+        Configure API Keys
+      </a>
+      <a href="#" class="btn" id="history-btn">
+        <span>📚</span>
+        View History
+      </a>
+      <a href="#" class="btn" id="shortcuts-btn">
+        <span>⌨️</span>
+        Keyboard Shortcuts
+      </a>
+    </div>
+    
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="analyses-count">0</div>
+        <div class="stat-label">Analyses</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="saved-time">0m</div>
+        <div class="stat-label">Time Saved</div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

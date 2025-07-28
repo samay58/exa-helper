@@ -1,0 +1,36 @@
+# API Configuration (contains sensitive keys)
+config.js
+
+# Development
+node_modules/
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Chrome Extension development
+*.pem
+*.crx
+*.zip
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+.tmp/
+temp/

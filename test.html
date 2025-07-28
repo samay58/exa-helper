@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bobby Extension Test Page</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1 {
+      color: #FF9472;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 40px;
+    }
+    .test-section {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #444;
+    }
+    .highlight-me {
+      background: linear-gradient(135deg, #FFE5DB, #FFD4E3);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+    .complex-text {
+      background: #fff;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bobby Extension Test Page</h1>
+  <p class="subtitle">Use this page to test the Bobby Chrome extension. Simply highlight any text to see the Bobby button appear!</p>
+
+  <div class="test-section">
+    <h2>🧪 Simple Test Text</h2>
+    <p>Try highlighting this sentence: <span class="highlight-me">The mitochondria is the powerhouse of the cell.</span></p>
+    <p>Or this one: <span class="highlight-me">Quantum computing uses quantum bits or qubits instead of classical bits.</span></p>
+  </div>
+
+  <div class="test-section">
+    <h2>📚 Complex Concepts</h2>
+    <div class="complex-text">
+      <p><strong>Machine Learning:</strong> Machine learning is a subset of artificial intelligence (AI) that provides systems the ability to automatically learn and improve from experience without being explicitly programmed. Machine learning focuses on the development of computer programs that can access data and use it to learn for themselves.</p>
+    </div>
+    <div class="complex-text">
+      <p><strong>Blockchain Technology:</strong> A blockchain is a distributed database that is shared among the nodes of a computer network. As a database, a blockchain stores information electronically in digital format. Blockchains are best known for their crucial role in cryptocurrency systems, such as Bitcoin, for maintaining a secure and decentralized record of transactions.</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>💻 Code Examples</h2>
+    <p>Try highlighting this code snippet:</p>
+    <pre><code>function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}</code></pre>
+    <p>Or this Python example:</p>
+    <pre><code>def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + middle + quicksort(right)</code></pre>
+  </div>
+
+  <div class="test-section">
+    <h2>📰 News-style Content</h2>
+    <div class="complex-text">
+      <p>Recent studies have shown that regular exercise can significantly improve cognitive function in older adults. The research, conducted over a five-year period with 3,000 participants aged 65 and above, found that those who engaged in moderate physical activity for at least 150 minutes per week showed a 35% reduction in cognitive decline compared to sedentary individuals.</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>🔬 Technical Documentation</h2>
+    <div class="complex-text">
+      <p><strong>REST API:</strong> REST (Representational State Transfer) is an architectural style for providing standards between computer systems on the web, making it easier for systems to communicate with each other. REST-compliant systems, often called RESTful systems, are characterized by how they are stateless and separate the concerns of client and server.</p>
+      <p>Key principles include:</p>
+      <ul>
+        <li>Client-Server Architecture</li>
+        <li>Statelessness</li>
+        <li>Cacheability</li>
+        <li>Uniform Interface</li>
+        <li>Layered System</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>🎯 Testing Tips</h2>
+    <ul>
+      <li>Highlight any text to see the Bobby button (✨) appear</li>
+      <li>Try different analysis modes: Explain, Summarize, ELI5, Technical, etc.</li>
+      <li>Test dragging the popup window around</li>
+      <li>Try resizing the popup using the bottom-right corner</li>
+      <li>Switch between light and dark mode in your system settings</li>
+      <li>Test the follow-up questions feature</li>
+    </ul>
+  </div>
+
+  <script>
+    // Add some interactive elements for testing
+    console.log('Bobby Test Page loaded successfully!');
+    
+    // Log text selections for debugging
+    document.addEventListener('mouseup', () => {
+      const selection = window.getSelection();
+      const text = selection.toString().trim();
+      if (text) {
+        console.log('Selected text:', text);
+        console.log('Selection length:', text.length);
+      }
+    });
+  </script>
+</body>
+</html>

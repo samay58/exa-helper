@@ -1,0 +1,72 @@
+{
+  "manifest_version": 3,
+  "name": "Bobby - AI Text Assistant",
+  "version": "1.0.0",
+  "description": "Highlight any text to get instant AI-powered insights, explanations, summaries, and fact checks.",
+  "icons": {
+    "16": "assets/icons/exa-helper-icons/16.png",
+    "48": "assets/icons/exa-helper-icons/64.png",
+    "128": "assets/icons/exa-helper-icons/128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://api.exa.ai/*",
+    "https://api.perplexity.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "config.js",
+        "components/modules/PromptManager.js",
+        "components/modules/APIClient.js",
+        "components/modules/UIComponents.js",
+        "components/modules/ButtonManager.js",
+        "components/modules/HistoryManager.js",
+        "components/modules/DragManager.js",
+        "components/modules/HallucinationDetector.js",
+        "components/modules/ContentAnalyzer.js",
+        "components/modules/ContextActions.js",
+        "components/modules/ParticleEffects.js",
+        "components/modules/InteractionEffects.js",
+        "components/modules/ThemeManager.js",
+        "components/modules/ModuleLoader.js",
+        "content.js"
+      ],
+      "css": ["styles.css"],
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_popup": "pages/popup.html",
+    "default_icon": {
+      "16": "assets/icons/exa-helper-icons/16.png",
+      "48": "assets/icons/exa-helper-icons/64.png",
+      "128": "assets/icons/exa-helper-icons/128.png"
+    }
+  },
+  "options_page": "pages/options.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "config.js",
+        "components/modules/*.js",
+        "assets/**/*",
+        "styles-v2.css"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

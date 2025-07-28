@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bobby Settings</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f9fafb;
+      --bg-tertiary: #f3f4f6;
+      --text-primary: #1a1a1a;
+      --text-secondary: #6b7280;
+      --border: #e5e7eb;
+      --accent-gradient: linear-gradient(135deg, #FF9472 0%, #F2709C 100%);
+      --accent-primary: #FF9472;
+      --success: #10b981;
+      --error: #ef4444;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #0a0a0a;
+        --bg-secondary: #1a1a1a;
+        --bg-tertiary: #2a2a2a;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+        --border: #374151;
+        --accent-gradient: linear-gradient(135deg, #7C3AED 0%, #A855F7 100%);
+        --accent-primary: #7C3AED;
+      }
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+    
+    .section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .section-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .help-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    input[type="text"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(255, 148, 114, 0.1);
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      background: var(--accent-gradient);
+      color: white;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 148, 114, 0.3);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-secondary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status.success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      display: block;
+    }
+    
+    .status.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      display: block;
+    }
+    
+    .api-link {
+      color: var(--accent-primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .api-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Bobby Settings</h1>
+      <p>Configure your AI assistant for the best experience</p>
+    </div>
+    
+    <form id="settings-form">
+      <div class="section">
+        <div class="section-header">
+          <span style="font-size: 24px;">🔑</span>
+          <h2>API Configuration</h2>
+        </div>
+        
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="use-anthropic">
+            <label for="use-anthropic">Use Anthropic Claude (Recommended - No rate limits)</label>
+          </div>
+          <p class="help-text">Enable to use Claude 3.5 Sonnet instead of OpenAI for better rate limits</p>
+        </div>
+        
+        <div class="form-group">
+          <label for="anthropic-key">Anthropic API Key</label>
+          <input type="password" id="anthropic-key" placeholder="sk-ant-api03-...">
+          <p class="help-text">
+            For Claude 3.5 Sonnet. Get your key from 
+            <a href="https://console.anthropic.com/account/keys" target="_blank" class="api-link">Anthropic Console</a>
+          </p>
+        </div>
+        
+        <div class="form-group">
+          <label for="anthropic-model">Anthropic Model</label>
+          <select id="anthropic-model">
+            <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet (Latest)</option>
+            <option value="claude-3-opus-20240229">Claude 3 Opus (Most capable)</option>
+          </select>
+          <p class="help-text">Claude 3.5 Sonnet recommended for best performance</p>
+        </div>
+        
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+        
+        <div class="form-group">
+          <label for="openai-key">OpenAI API Key (Fallback)</label>
+          <input type="password" id="openai-key" placeholder="sk-...">
+          <p class="help-text">
+            Fallback option if Anthropic is disabled. Get your key from 
+            <a href="https://platform.openai.com/api-keys" target="_blank" class="api-link">OpenAI Dashboard</a>
+          </p>
+        </div>
+        
+        <div class="form-group">
+          <label for="openai-model">OpenAI Model</label>
+          <select id="openai-model">
+            <option value="gpt-4-turbo-preview">GPT-4 Turbo (Best quality)</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster & cheaper)</option>
+          </select>
+          <p class="help-text">Choose based on your needs and budget</p>
+        </div>
+        
+        <div class="form-group">
+          <label for="exa-key">Exa API Key (Optional)</label>
+          <input type="password" id="exa-key" placeholder="exa-...">
+          <p class="help-text">
+            For fact-checking and source verification. Get your key from 
+            <a href="https://exa.ai" target="_blank" class="api-link">Exa.ai</a>
+          </p>
+        </div>
+        
+        <div class="form-group">
+          <label for="perplexity-key">Perplexity API Key (Optional)</label>
+          <input type="password" id="perplexity-key" placeholder="pplx-...">
+          <p class="help-text">
+            For additional research capabilities. Get your key from 
+            <a href="https://perplexity.ai" target="_blank" class="api-link">Perplexity.ai</a>
+          </p>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-header">
+          <span style="font-size: 24px;">⚙️</span>
+          <h2>Preferences</h2>
+        </div>
+        
+        <div class="form-group">
+          <label for="theme">Theme</label>
+          <select id="theme">
+            <option value="auto">Auto (System)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="max-text">Maximum Text Length</label>
+          <input type="number" id="max-text" min="1000" max="10000" value="5000">
+          <p class="help-text">Maximum characters to analyze at once</p>
+        </div>
+        
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="enable-history" checked>
+            <label for="enable-history">Enable History Tracking</label>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" id="enable-cache" checked>
+            <label for="enable-cache">Cache Responses</label>
+          </div>
+          <p class="help-text">Save API costs by caching identical queries</p>
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button type="submit" class="btn">
+          <span>💾</span>
+          Save Settings
+        </button>
+        <button type="button" class="btn btn-secondary" id="reset-btn">
+          <span>🔄</span>
+          Reset to Defaults
+        </button>
+      </div>
+      
+      <div id="status" class="status"></div>
+    </form>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
