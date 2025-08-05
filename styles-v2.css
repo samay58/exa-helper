@@ -3,12 +3,30 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
 /* CSS Variables for V2 theming */
 :root {
-  /* Liquid Glass - Ultra translucent with depth */
-  --liquid-glass-base: rgba(248, 250, 255, 0.4);
-  --liquid-glass-hover: rgba(250, 252, 255, 0.45);
+  /* Teenage Engineering Design System */
+  --te-radius: 6px;
+  --te-bg-base: #ECECEC;
+  --te-bg-button: rgba(255, 255, 255, 0.18);
+  --te-stroke: rgba(255, 255, 255, 0.35);
+  --te-hover-bg: rgba(255, 255, 255, 0.25);
+  --te-active-bg: rgba(255, 255, 255, 0.12);
+  --te-accent-orange: #ff7847;
+  --te-accent-blue: #4facfe;
+  --te-accent-green: #4ade80;
+  --te-text-muted: rgba(0, 0, 0, 0.5);
+  --te-font-mono: 'Space Mono', 'SF Mono', monospace;
+  --te-font-size: 11px;
+  --te-letter-spacing: 0.05em;
+  --te-transition-fast: 120ms ease;
+  --te-transition-spring: cubic-bezier(0.23, 1, 0.32, 1);
+  
+  /* Liquid Glass - More opaque for better contrast without blur */
+  --liquid-glass-base: rgba(248, 250, 255, 0.85);
+  --liquid-glass-hover: rgba(250, 252, 255, 0.9);
   --liquid-glass-shimmer: rgba(255, 255, 255, 0.15);
   --liquid-glass-refraction: rgba(220, 230, 255, 0.08);
   --liquid-glass-edge: rgba(255, 255, 255, 0.06);
@@ -22,10 +40,10 @@
   --bobby-glass-overlay: rgba(255, 255, 255, 0.3);
   
   /* Liquid blur effects - Minimal for maximum readability */
-  --liquid-blur-heavy: blur(3px) saturate(150%);
-  --liquid-blur-medium: blur(2px) saturate(130%);
-  --liquid-blur-soft: blur(1px) saturate(110%);
-  --liquid-blur-subtle: blur(0.5px);
+  --liquid-blur-heavy: blur(0px) saturate(150%);
+  --liquid-blur-medium: blur(0px) saturate(130%);
+  --liquid-blur-soft: blur(0px) saturate(110%);
+  --liquid-blur-subtle: blur(0px);
   
   /* Modern gradient accents */
   --bobby-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -77,8 +95,16 @@
 /* Dark mode with liquid glass */
 @media (prefers-color-scheme: dark) {
   :root {
-    --liquid-glass-base: rgba(15, 20, 35, 0.35);
-    --liquid-glass-hover: rgba(20, 25, 40, 0.4);
+    /* Teenage Engineering Dark Mode */
+    --te-bg-base: #1a1a1a;
+    --te-bg-button: rgba(255, 255, 255, 0.08);
+    --te-stroke: rgba(255, 255, 255, 0.15);
+    --te-hover-bg: rgba(255, 255, 255, 0.12);
+    --te-active-bg: rgba(255, 255, 255, 0.05);
+    --te-text-muted: rgba(255, 255, 255, 0.5);
+    
+    --liquid-glass-base: rgba(15, 20, 35, 0.9);
+    --liquid-glass-hover: rgba(20, 25, 40, 0.95);
     --liquid-glass-shimmer: rgba(255, 255, 255, 0.08);
     --liquid-glass-refraction: rgba(180, 200, 255, 0.04);
     --liquid-glass-edge: rgba(255, 255, 255, 0.03);
@@ -117,8 +143,8 @@
 .bobby-popup-v2 {
   position: fixed;
   background: var(--liquid-glass-base);
-  backdrop-filter: var(--liquid-blur-medium);
-  -webkit-backdrop-filter: var(--liquid-blur-medium);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-radius: 24px;
   box-shadow: var(--bobby-glass-shadow);
   border: 1px solid var(--bobby-glass-border);
@@ -157,8 +183,8 @@
     transparent 80%,
     var(--liquid-glass-shimmer) 100%
   );
-  backdrop-filter: var(--liquid-blur-soft);
-  -webkit-backdrop-filter: var(--liquid-blur-soft);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   opacity: 0.3;
   z-index: 1;
 }
@@ -236,37 +262,32 @@
   justify-content: center;
 }
 
-/* Individual action button - Sharp & Readable */
+/* Individual action button - Teenage Engineering Style */
 /* Use :where() to reduce specificity so group overrides work better */
 :where(.bobby-action-btn-v2),
 :where(.bobby-prompt-btn) {
   position: relative;
-  padding: 12px 20px;
-  background: linear-gradient(
-    135deg, 
-    rgba(255, 255, 255, 0.85) 0%, 
-    rgba(255, 255, 255, 0.8) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  color: #1a1a1a;
-  font-family: var(--bobby-font-sans);
-  font-size: var(--bobby-text-sm);
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  padding: 10px 16px;
+  background: var(--te-bg-button);
+  border: none;
+  border-radius: var(--te-radius);
+  color: var(--bobby-adaptive-text);
+  font-family: var(--te-font-mono);
+  font-size: var(--te-font-size);
+  font-weight: 400;
+  letter-spacing: var(--te-letter-spacing);
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all var(--bobby-anim-fast) var(--bobby-spring-bounce);
+  transition: all var(--te-transition-fast) var(--te-transition-spring);
   overflow: hidden;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  /* No blur for sharp text */
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  gap: 6px;
+  /* Minimal blur for performance */
+  backdrop-filter: saturate(180%);
+  -webkit-backdrop-filter: saturate(180%);
+  /* Single inset stroke instead of shadows */
+  box-shadow: inset 0 0 0 1px var(--te-stroke);
   opacity: 0;
   transform: translateY(10px);
   animation: buttonFadeIn var(--bobby-anim-medium) var(--bobby-spring-smooth) forwards;
@@ -293,11 +314,21 @@
   pointer-events: none;
 }
 
-/* Focus states using box-shadow instead of outline */
+/* Focus states - TE encoder ring animation */
 .bobby-action-btn-v2:focus-visible,
 .bobby-prompt-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.5), 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 2px var(--te-accent-orange), inset 0 0 0 1px var(--te-stroke);
+  animation: encoderRing 250ms ease-out;
+}
+
+@keyframes encoderRing {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Disabled state */
@@ -330,14 +361,13 @@
   animation: spin 0.6s linear infinite;
 }
 
-/* Dark mode button colors - Better contrast */
+/* Dark mode button colors - TE Style */
 @media (prefers-color-scheme: dark) {
   :where(.bobby-action-btn-v2),
   :where(.bobby-prompt-btn) {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.12) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: var(--te-bg-button);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: inset 0 0 0 1px var(--te-stroke);
   }
   
   /* Dark mode overrides for primary actions */
@@ -373,21 +403,13 @@
   }
 }
 
-/* Button hover effects - Liquid Glass */
+/* Button hover effects - TE Style */
 @media (hover: hover) {
   :where(.bobby-action-btn-v2):hover,
   :where(.bobby-prompt-btn):hover {
-    transform: translateY(-1px) scale(1.01);
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.8) 0%,
-      rgba(255, 255, 255, 0.6) 100%
-    );
-    color: #1a1a1a;
-    box-shadow: 
-      0 4px 16px rgba(102, 126, 234, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+    background: var(--te-hover-bg);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25) inset, inset 0 0 0 1px var(--te-stroke);
   }
   
   /* Shimmer effect on hover */
@@ -397,20 +419,37 @@
   }
 }
 
-/* Button active state */
+/* Button active state - TE Style */
 .bobby-action-btn-v2:active,
 .bobby-prompt-btn:active {
-  transform: translateY(0) scale(0.96);
-  transition-duration: 100ms;
+  transform: translateY(0) scale(0.97);
+  background: var(--te-active-bg);
+  transition-duration: 50ms;
 }
 
-/* Active button state */
+/* Active button state - TE accent style */
 :where(.bobby-action-btn-v2.active),
 :where(.bobby-prompt-btn.active) {
-  background: var(--bobby-gradient-primary);
-  color: white;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-  font-weight: 500; /* Keep consistent font weight to prevent layout shift */
+  background: var(--te-bg-button);
+  color: var(--te-accent-orange);
+  box-shadow: inset 0 0 0 2px var(--te-accent-orange);
+  font-weight: 400; /* Keep consistent font weight to prevent layout shift */
+}
+
+/* Accent variants for different button types */
+.bobby-action-btn-v2.te-accent-primary,
+.bobby-prompt-btn.te-accent-primary {
+  color: var(--te-accent-orange);
+}
+
+.bobby-action-btn-v2.te-accent-navigation,
+.bobby-prompt-btn.te-accent-navigation {
+  color: var(--te-accent-blue);
+}
+
+.bobby-action-btn-v2.te-accent-success,
+.bobby-prompt-btn.te-accent-success {
+  color: var(--te-accent-green);
 }
 
 /* Ripple effect on click */
@@ -517,8 +556,8 @@
   padding: 40px;
   gap: 24px;
   /* Light blur for loader overlay */
-  backdrop-filter: var(--liquid-blur-subtle);
-  -webkit-backdrop-filter: var(--liquid-blur-subtle);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Ensure loaders don't trigger animations on frequent actions */
@@ -790,7 +829,7 @@
   transform: translateX(-50%) translateY(10px);
   padding: 6px 12px;
   background: var(--bobby-glass-bg);
-  backdrop-filter: blur(2px);
+  backdrop-filter: none;
   border: 1px solid var(--bobby-glass-border);
   border-radius: 8px;
   font-size: 12px;
@@ -914,8 +953,8 @@ pre {
     rgba(255, 255, 255, 0.05)
   );
   position: relative;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   min-height: 120px;
 }
 
@@ -967,8 +1006,8 @@ pre {
   );
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   /* Minimal blur for readability */
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Dark mode selected context */
@@ -1065,8 +1104,8 @@ pre {
   border-radius: 16px;
   padding: 20px;
   /* Minimal blur for performance and readability */
-  backdrop-filter: blur(1px) saturate(110%);
-  -webkit-backdrop-filter: blur(1px) saturate(110%);
+  backdrop-filter: saturate(110%);
+  -webkit-backdrop-filter: saturate(110%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   position: relative;
   overflow: hidden;
@@ -1245,17 +1284,16 @@ pre {
   border-bottom: 1px solid var(--bobby-glass-border);
 }
 
-/* Primary actions - button group with spacing */
+/* Primary actions - TE-style button group */
 .bobby-primary-actions {
   display: flex;
-  gap: 8px; /* Add spacing between buttons */
+  gap: 4px; /* Tighter spacing for TE aesthetic */
   margin: 0 0 12px 0;
-  padding: 4px; /* Inner padding for the container */
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(2px);
+  padding: 3px; /* Minimal padding */
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  backdrop-filter: none; /* Remove blur for clarity */
   isolation: isolate; /* Create new stacking context */
   width: 100%;
   box-sizing: border-box;
@@ -1265,32 +1303,33 @@ pre {
 .bobby-primary-actions .bobby-action-btn-v2 {
   flex: 1;
   margin: 0 !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 8px !important;
-  padding: 10px 20px !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  transition: all 150ms ease;
+  border: none !important;
+  border-radius: 5px !important;
+  padding: 8px 12px !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  background: var(--te-bg-button) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+  transition: all var(--te-transition-fast) var(--te-transition-spring);
   animation: none !important;
   opacity: 1 !important;
   transform: none !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 6px !important;
+  gap: 4px !important;
   text-align: center;
   min-width: 0; /* Allow flex items to shrink */
   backdrop-filter: none !important;
   position: relative;
   overflow: hidden;
   white-space: nowrap !important;
-  letter-spacing: 0.02em !important;
-  line-height: 1.4 !important;
-  height: 40px !important;
-  color: var(--bobby-adaptive-text) !important;
-  font-family: var(--bobby-font-sans) !important;
+  letter-spacing: var(--te-letter-spacing) !important;
+  line-height: 1.2 !important;
+  height: 36px !important;
+  color: var(--te-text-muted) !important;
+  font-family: var(--te-font-mono) !important;
+  text-transform: uppercase !important;
   box-sizing: border-box !important;
 }
 
@@ -1315,68 +1354,58 @@ pre {
   opacity: 0.8;
 }
 
-/* Hover state for primary buttons */
+/* Hover state for primary buttons - TE Style */
 @media (hover: hover) {
   .bobby-primary-actions .bobby-prompt-btn:hover:not(.active),
   .bobby-primary-actions .bobby-action-btn-v2:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.08) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    background: var(--te-hover-bg) !important;
+    transform: translateY(-0.5px) !important;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12) !important;
     color: var(--bobby-adaptive-text) !important;
-    border-color: rgba(0, 0, 0, 0.1) !important;
   }
 }
 
-/* Active state for primary buttons */
+/* Active state for primary buttons - TE Style */
 .bobby-primary-actions .bobby-prompt-btn.active,
 .bobby-primary-actions .bobby-action-btn-v2.active {
-  background: rgba(102, 126, 234, 0.12) !important;
-  color: rgb(102, 126, 234) !important;
-  box-shadow: none !important;
+  background: var(--te-bg-button) !important;
+  color: var(--te-accent-orange) !important;
+  box-shadow: inset 0 0 0 1px var(--te-accent-orange) !important;
   transform: none !important;
-  font-weight: 500 !important; /* Keep consistent to prevent layout shift */
+  font-weight: 400 !important; /* Keep consistent to prevent layout shift */
   position: relative;
 }
 
-/* Add subtle active indicator */
-.bobby-primary-actions .bobby-prompt-btn.active::after,
-.bobby-primary-actions .bobby-action-btn-v2.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 8px;
-  right: 8px;
-  height: 2px;
-  background: rgb(102, 126, 234);
-  border-radius: 2px;
-}
+/* Remove bottom indicator for cleaner TE look */
 
-/* Secondary actions - icon buttons */
+/* Secondary actions - TE icon buttons */
 .bobby-secondary-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
 }
 
 .bobby-secondary-actions .bobby-prompt-btn,
 .bobby-secondary-actions .bobby-action-btn-v2 {
-  width: 36px !important;
-  height: 36px !important;
+  width: 32px !important;
+  height: 32px !important;
   padding: 0 !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 8px !important;
+  border-radius: var(--te-radius) !important;
   margin: 0 !important;
   flex: none !important;
   opacity: 1 !important;
   transform: none !important;
   animation: none !important;
-  backdrop-filter: blur(2px) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid var(--bobby-glass-border) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: none !important;
+  background: var(--te-bg-button) !important;
+  border: none !important;
+  box-shadow: inset 0 0 0 1px var(--te-stroke) !important;
+  color: var(--te-text-muted) !important;
+  transition: all var(--te-transition-fast) var(--te-transition-spring) !important;
 }
 
 /* Icon-only buttons */
@@ -1392,22 +1421,22 @@ pre {
   transition: all 150ms ease;
 }
 
-/* Click Feedback Animation */
-@keyframes clickPulse {
+/* Click Feedback Animation - TE Style */
+@keyframes teClick {
   0% {
-    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+    transform: scale(1);
   }
-  70% {
-    box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+  50% {
+    transform: scale(0.97);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    transform: scale(1);
   }
 }
 
 .bobby-action-btn-v2:active,
 .bobby-prompt-btn:active {
-  animation: clickPulse 0.4s ease-out;
+  animation: teClick 120ms ease-out;
 }
 
 /* Loading Overlay */
@@ -1415,7 +1444,7 @@ pre {
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(2px);
+  backdrop-filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1468,8 +1497,8 @@ pre {
 
 .bobby-followup-input-container {
   background: var(--bobby-glass-overlay);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-top: 1px solid var(--bobby-glass-border);
   padding: 16px 20px;
   animation: slideUp 200ms ease-out;
@@ -1487,8 +1516,8 @@ pre {
   border: 1px solid var(--bobby-glass-border);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   color: var(--bobby-adaptive-text);
   font-size: 16px; /* Prevent iOS zoom */
   font-family: var(--bobby-font-sans);
@@ -1564,22 +1593,23 @@ pre {
 }
 }
 
-/* Icon button styles for header */
+/* Icon button styles for header - TE Style */
 .bobby-header-actions button {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--bobby-adaptive-text);
-  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--te-radius);
+  border: none;
+  background: var(--te-bg-button);
+  color: var(--te-text-muted);
+  font-size: 14px;
   cursor: pointer;
-  transition: all var(--bobby-anim-fast) var(--bobby-spring-bounce);
+  transition: all var(--te-transition-fast) var(--te-transition-spring);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px var(--te-stroke);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1597,13 +1627,20 @@ pre {
   transform: none;
 }
 
-/* Hover only on devices that support it */
+/* Hover only on devices that support it - TE Style */
 @media (hover: hover) {
   .bobby-header-actions button:hover {
-    background: rgba(102, 126, 234, 0.2);
-    border-color: rgba(102, 126, 234, 0.3);
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    background: var(--te-hover-bg);
+    transform: translateY(-0.5px);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+  
+  /* Secondary actions hover */
+  .bobby-secondary-actions .bobby-prompt-btn:hover,
+  .bobby-secondary-actions .bobby-action-btn-v2:hover {
+    background: var(--te-hover-bg) !important;
+    transform: translateY(-0.5px) !important;
+    color: var(--bobby-adaptive-text) !important;
   }
 }
 
@@ -1682,8 +1719,8 @@ pre {
 /* Summary Section V2 */
 .bobby-fact-check-summary-v2 {
   background: var(--glass-bg-light);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 24px;
@@ -1699,8 +1736,8 @@ pre {
   align-items: center;
   padding: 16px 24px;
   border-radius: 8px;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--glass-border);
   transition: all 0.2s ease;
 }
@@ -1807,8 +1844,8 @@ pre {
 /* Claim Card V2 */
 .bobby-claim-card-v2 {
   background: var(--glass-bg-light);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 20px;
@@ -2066,8 +2103,8 @@ pre {
     rgba(255, 255, 255, 0.15) 0%,
     rgba(255, 255, 255, 0.1) 100%
   );
-  backdrop-filter: blur(1px) saturate(105%);
-  -webkit-backdrop-filter: blur(1px) saturate(105%);
+  backdrop-filter: saturate(105%);
+  -webkit-backdrop-filter: saturate(105%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 24px;
@@ -2250,8 +2287,8 @@ pre {
     rgba(255, 255, 255, 0.25) 100%
   );
   /* Minimal blur for integration */
-  backdrop-filter: blur(1px) saturate(105%);
-  -webkit-backdrop-filter: blur(1px) saturate(105%);
+  backdrop-filter: saturate(105%);
+  -webkit-backdrop-filter: saturate(105%);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 16px 20px;
@@ -2606,7 +2643,7 @@ pre {
 }
 
 /* ============================================
-   Glass Noise Texture & Grain
+   Glass Noise Texture & Grain - TE Style
    ============================================ */
 
 /* SVG noise pattern for authentic glass texture */
@@ -2621,6 +2658,22 @@ pre {
   z-index: 3;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* TE-style micro-texture for buttons */
+.bobby-action-btn-v2::after,
+.bobby-prompt-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='knurl'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2' numOctaves='1' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23knurl)' opacity='0.4'/%3E%3C/svg%3E");
+  border-radius: inherit;
 }
 
 /* Add grain to popup */
@@ -2651,4 +2704,120 @@ pre {
   mask-composite: exclude;
   pointer-events: none;
   z-index: 4;
+}
+
+/* ============================================
+   Improved Fact-Check Loading & Error States
+   ============================================ */
+
+/* Enhanced processing animation */
+@keyframes bobby-processing-sweep {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Fact-check claim states */
+.bobby-fact-check-claim {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.bobby-fact-check-claim.processing {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+.bobby-fact-check-claim.processing::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.1),
+    transparent
+  );
+  animation: bobby-processing-sweep 1.5s linear infinite;
+}
+
+/* Error state improvements */
+.bobby-claim-error .bobby-claim-status-v3 {
+  color: #dc2626;
+}
+
+.bobby-claim-error .bobby-claim-content-v3 {
+  opacity: 0.8;
+}
+
+.bobby-claim-error .bobby-verification-text-v3 {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Loading skeleton improvements */
+.bobby-skeleton-claim.active {
+  animation: bobby-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bobby-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Retry button for errors */
+.bobby-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-top: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  color: var(--bobby-accent-blue);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bobby-retry-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Improved error message styling */
+.bobby-error-message {
+  background: rgba(220, 38, 38, 0.05);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px;
+  color: #dc2626;
+  text-align: center;
+}
+
+.bobby-error-message h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bobby-error-message p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
 }

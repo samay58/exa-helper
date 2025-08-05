@@ -18,54 +18,86 @@ class HallucinationDetector {
       return this.cache.get(cacheKey);
     }
 
-    try {
-      // Use Chrome runtime messaging to avoid direct API calls
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          action: 'analyzeText',
-          text: text,
-          mode: 'extractClaims'
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else if (response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response.error || 'Unknown error'));
-          }
-        });
-      });
+    let retries = 2;
+    let lastError = null;
 
-      let content = response.result;
-      
-      // Extract JSON from response if it contains extra text
-      content = this.extractJSON(content);
-      
-      // Parse JSON response
-      let claims;
+    while (retries >= 0) {
       try {
-        claims = JSON.parse(content);
-        // Validate the structure
-        if (!Array.isArray(claims)) {
-          throw new Error('Claims must be an array');
-        }
-        // Validate each claim object
-        claims = claims.filter(claim => {
-          return claim && typeof claim === 'object' && 
-                 claim.claim && typeof claim.claim === 'string';
+        // Use Chrome runtime messaging to avoid direct API calls
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({
+            action: 'analyzeText',
+            text: text,
+            mode: 'extractClaims'
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error || 'Unknown error'));
+            }
+          });
         });
-      } catch (e) {
-        console.warn('Failed to parse claims JSON:', e);
-        // Fallback parsing if not JSON
-        claims = this.parseClaimsFromText(response.result);
+
+        let content = response.result;
+        console.log('Bobby: Raw claim extraction response:', content);
+        
+        // Aggressive JSON extraction
+        content = this.extractJSON(content);
+        
+        // Parse JSON response
+        let claims;
+        try {
+          claims = JSON.parse(content);
+          // Validate the structure
+          if (!Array.isArray(claims)) {
+            throw new Error('Claims must be an array');
+          }
+          // Validate and clean each claim object
+          claims = claims.filter(claim => {
+            return claim && typeof claim === 'object' && 
+                   claim.claim && typeof claim.claim === 'string' &&
+                   claim.claim.trim().length > 10; // Minimum claim length
+          }).map(claim => ({
+            claim: claim.claim.trim(),
+            original_text: claim.original_text || claim.claim,
+            type: claim.type || 'general'
+          }));
+          
+          if (claims.length === 0) {
+            throw new Error('No valid claims extracted');
+          }
+        } catch (e) {
+          console.warn('Failed to parse claims JSON, attempt', 3 - retries, ':', e);
+          if (retries === 0) {
+            // Final fallback - extract sentences manually
+            console.log('Bobby: Using fallback claim extraction');
+            claims = this.parseClaimsFromText(text);
+          } else {
+            throw e; // Retry with simplified prompt
+          }
+        }
+        
+        this.cache.set(cacheKey, claims);
+        return claims;
+      } catch (error) {
+        console.error('Error extracting claims, retries left:', retries, error);
+        lastError = error;
+        retries--;
+        
+        if (retries >= 0) {
+          // Wait a bit before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-      
-      this.cache.set(cacheKey, claims);
-      return claims;
-    } catch (error) {
-      console.error('Error extracting claims:', error);
-      throw error;
     }
+    
+    // If all retries failed, use fallback
+    console.log('Bobby: All claim extraction attempts failed, using direct text parsing');
+    const fallbackClaims = this.parseClaimsFromText(text);
+    this.cache.set(cacheKey, fallbackClaims);
+    return fallbackClaims;
   }
 
   /**
@@ -142,24 +174,33 @@ class HallucinationDetector {
       const response = await new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({
           action: 'analyzeText',
-          text: `Claim: "${claim}"
-              
-Original text: "${originalText}"
+          text: `RESPOND WITH ONLY JSON:
 
-Sources found:
+Claim to evaluate: "${claim}"
+
+Sources:
 ${sourcesText || 'No sources found'}
 
-Evaluate this claim and provide your assessment.`,
+TASK: Output a JSON object evaluating this claim.`,
           mode: 'factcheck',
-          systemPrompt: `You are a fact-checker evaluating claims against reliable sources.
-Evaluate the given claim using the provided sources and return a JSON object with:
-- assessment: "true", "false", "partially_true", "unverifiable", or "needs_context"
-- confidence: 0-100 (your confidence in the assessment)
-- summary: Brief explanation of your assessment
-- fixed_text: Corrected version of the original text (if needed)
-- supporting_sources: Array of source indices that support or refute the claim
+          systemPrompt: `You are a JSON-only fact-checking system. You MUST respond with ONLY a JSON object, no other text.
 
-Return ONLY the JSON object, no other text.`
+Required JSON format:
+{"assessment": "true|false|partially_true|unverifiable|needs_context", "confidence": 0-100, "summary": "One sentence", "supporting_sources": [1,2,3]}
+
+Example response:
+{"assessment": "true", "confidence": 85, "summary": "The claim is supported by source 1 and 2.", "supporting_sources": [1, 2]}
+
+CRITICAL RULES:
+1. Start your response with { and end with }
+2. No text before or after the JSON
+3. No explanations, no markdown, ONLY JSON
+4. assessment must be one of: true, false, partially_true, unverifiable, needs_context
+5. confidence must be a number 0-100
+6. summary must be one concise sentence
+7. supporting_sources must be an array of source numbers
+
+DO NOT write any other text. Begin with { and end with }.`
         }, (response) => {
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
@@ -172,33 +213,42 @@ Return ONLY the JSON object, no other text.`
       });
 
       let content = response.result;
+      console.log('Bobby: Raw evaluation response:', content);
       
-      // Extract JSON from response if it contains extra text
-      content = this.extractJSON(content);
+      // Extract JSON from response
+      content = this.extractEvaluationJSON(content);
       
       // Parse JSON response
       try {
         const result = JSON.parse(content);
-        // Validate required fields
-        if (!result.assessment || !result.confidence !== undefined) {
-          throw new Error('Invalid evaluation response structure');
-        }
-        return result;
+        // Validate and ensure all required fields
+        const evaluation = {
+          assessment: result.assessment || 'error',
+          confidence: typeof result.confidence === 'number' ? result.confidence : 0,
+          summary: result.summary || 'Unable to evaluate claim.',
+          supporting_sources: Array.isArray(result.supporting_sources) ? result.supporting_sources : []
+        };
+        console.log('Bobby: Parsed evaluation from JSON:', evaluation);
+        return evaluation;
       } catch (e) {
         console.warn('Failed to parse evaluation JSON:', e);
-        // Try to extract meaningful information from the response
-        const assessment = this.extractAssessment(response.result);
-        return {
-          assessment: assessment || 'error',
-          confidence: 0,
-          summary: 'Unable to verify this claim due to a technical issue. The AI response could not be parsed correctly. Please try again or rephrase the claim.',
-          fixed_text: originalText,
-          supporting_sources: []
-        };
+        console.log('Bobby: Attempting fallback text extraction for:', response.result);
+        // Try to extract from plain text
+        const fallbackResult = this.extractEvaluationFromText(response.result);
+        console.log('Bobby: Fallback extraction result:', fallbackResult);
+        return fallbackResult;
       }
     } catch (error) {
       console.error('Error evaluating claim:', error);
-      throw error;
+      // Don't throw - return error result
+      return {
+        assessment: 'error',
+        confidence: 0,
+        summary: error.message.includes('Rate limit') ? 
+          'Rate limit reached. Please try again in a moment.' : 
+          'Unable to verify this claim due to a technical error.',
+        supporting_sources: []
+      };
     }
   }
 
@@ -263,75 +313,162 @@ Return ONLY the JSON object, no other text.`
   parseClaimsFromText(text) {
     const claims = [];
     
-    // Improved regex to capture complete sentences including those with abbreviations
-    const sentenceRegex = /[^.!?]+(?:[.!?](?![.!?])|[.!?]+)/g;
-    const sentences = text.match(sentenceRegex) || [text];
+    // Split text into sentences more intelligently
+    // Handle abbreviations and decimal numbers
+    const sentences = this.splitIntoSentences(text);
     
     sentences.forEach((sentence) => {
       const trimmed = sentence.trim();
       
-      // Only include meaningful claims (not too short, not just punctuation)
-      if (trimmed && trimmed.length > 30 && /[a-zA-Z0-9]/.test(trimmed)) {
+      // Only include meaningful claims
+      if (trimmed && trimmed.length > 20 && /[a-zA-Z0-9]/.test(trimmed)) {
         // Ensure the claim ends with proper punctuation
         let cleanClaim = trimmed;
         if (!/[.!?]$/.test(cleanClaim)) {
           cleanClaim += '.';
         }
         
-        // Check if it's likely a factual claim (contains numbers, dates, names, or assertions)
-        const hasFactualElements = /\d+|(?:January|February|March|April|May|June|July|August|September|October|November|December)|(?:is|are|was|were|has|have|had|will|would|can|could|should|must)|(?:[A-Z][a-z]+\s+){1,}/g.test(cleanClaim);
-        
-        if (hasFactualElements) {
-          claims.push({
-            claim: cleanClaim,
-            original_text: cleanClaim,
-            type: 'factual'
-          });
+        // Determine claim type based on content
+        let type = 'general';
+        if (/\d+\s*%|\d+\s*percent/i.test(cleanClaim)) {
+          type = 'statistical';
+        } else if (/\d{4}|(?:January|February|March|April|May|June|July|August|September|October|November|December)/i.test(cleanClaim)) {
+          type = 'historical';
+        } else if (/(?:study|research|experiment|data|evidence)/i.test(cleanClaim)) {
+          type = 'scientific';
+        } else if (/(?:AI|artificial intelligence|machine learning|algorithm|technology|software|hardware)/i.test(cleanClaim)) {
+          type = 'technological';
         }
+        
+        claims.push({
+          claim: cleanClaim,
+          original_text: cleanClaim,
+          type: type
+        });
       }
     });
 
-    // If no claims found, try to extract at least one meaningful statement
+    // If no claims found, create one from the whole text
     if (claims.length === 0) {
-      const firstMeaningfulSentence = sentences.find(s => s.trim().length > 50);
-      if (firstMeaningfulSentence) {
-        claims.push({
-          claim: firstMeaningfulSentence.trim(),
-          original_text: firstMeaningfulSentence.trim(),
-          type: 'general'
-        });
-      } else {
-        // Last resort: take first 200 chars
-        claims.push({
-          claim: text.substring(0, 200).trim() + '...',
-          original_text: text,
-          type: 'general'
-        });
-      }
+      const cleanText = text.trim().replace(/\s+/g, ' ');
+      const truncated = cleanText.length > 200 ? cleanText.substring(0, 197) + '...' : cleanText;
+      claims.push({
+        claim: truncated,
+        original_text: text,
+        type: 'general'
+      });
     }
 
     return claims;
   }
 
   /**
+   * Split text into sentences handling edge cases
+   */
+  splitIntoSentences(text) {
+    // Replace known abbreviations with placeholders
+    const abbrevs = {
+      'Mr.': 'Mr<DOT>',
+      'Mrs.': 'Mrs<DOT>',
+      'Dr.': 'Dr<DOT>',
+      'Prof.': 'Prof<DOT>',
+      'Sr.': 'Sr<DOT>',
+      'Jr.': 'Jr<DOT>',
+      'Co.': 'Co<DOT>',
+      'Inc.': 'Inc<DOT>',
+      'Ltd.': 'Ltd<DOT>',
+      'Corp.': 'Corp<DOT>',
+      'vs.': 'vs<DOT>',
+      'e.g.': 'eg<DOT>',
+      'i.e.': 'ie<DOT>',
+      'etc.': 'etc<DOT>',
+      'U.S.': 'US<DOT>',
+      'U.K.': 'UK<DOT>'
+    };
+    
+    let processed = text;
+    for (const [abbrev, placeholder] of Object.entries(abbrevs)) {
+      processed = processed.replace(new RegExp(abbrev.replace('.', '\\.'), 'g'), placeholder);
+    }
+    
+    // Split on sentence boundaries
+    const sentences = processed.match(/[^.!?]+[.!?]+/g) || [processed];
+    
+    // Restore abbreviations
+    return sentences.map(s => {
+      let restored = s;
+      for (const [abbrev, placeholder] of Object.entries(abbrevs)) {
+        restored = restored.replace(new RegExp(placeholder, 'g'), abbrev);
+      }
+      return restored.trim();
+    }).filter(s => s.length > 0);
+  }
+
+  /**
    * Extract JSON from text that might contain extra content
    */
   extractJSON(text) {
-    // First, try to find JSON array in the text
-    const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (!text || typeof text !== 'string') {
+      return '[]';
+    }
+    
+    // Remove common prefixes that LLMs add
+    let cleaned = text.trim();
+    
+    // Remove markdown code blocks
+    cleaned = cleaned.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+    
+    // Remove common phrases
+    const phrasesToRemove = [
+      /^Here (?:is|are) the extracted claims?:?\s*/i,
+      /^The extracted claims? (?:is|are):?\s*/i,
+      /^JSON:?\s*/i,
+      /^Output:?\s*/i,
+      /^Result:?\s*/i,
+      /^Claims?:?\s*/i
+    ];
+    
+    for (const phrase of phrasesToRemove) {
+      cleaned = cleaned.replace(phrase, '');
+    }
+    
+    // Try to find JSON array
+    const arrayMatch = cleaned.match(/\[\s*\{[^\[\]]*\}\s*(?:,\s*\{[^\[\]]*\}\s*)*\]/);
     if (arrayMatch) {
-      return arrayMatch[0];
+      try {
+        // Validate it's proper JSON
+        JSON.parse(arrayMatch[0]);
+        return arrayMatch[0];
+      } catch (e) {
+        // Continue to next method
+      }
     }
     
-    // If no array found, try to find JSON object
-    const objectMatch = text.match(/\{[\s\S]*\}/);
+    // Try to find JSON object and wrap in array
+    const objectMatch = cleaned.match(/\{[^{}]*(?:"claim"\s*:\s*"[^"]+")[^{}]*\}/);
     if (objectMatch) {
-      // Wrap single object in array
-      return `[${objectMatch[0]}]`;
+      try {
+        JSON.parse(objectMatch[0]);
+        return `[${objectMatch[0]}]`;
+      } catch (e) {
+        // Continue to next method
+      }
     }
     
-    // Return original text if no JSON found
-    return text;
+    // Last resort - check if the whole thing is valid JSON
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        return cleaned;
+      } else if (typeof parsed === 'object' && parsed.claim) {
+        return `[${cleaned}]`;
+      }
+    } catch (e) {
+      // Not valid JSON
+    }
+    
+    // Return empty array if no JSON found
+    return '[]';
   }
 
   /**
@@ -377,6 +514,203 @@ Return ONLY the JSON object, no other text.`
     
     // Default to error if no clear assessment found
     return 'error';
+  }
+
+  /**
+   * Extract evaluation JSON from response
+   */
+  extractEvaluationJSON(text) {
+    if (!text || typeof text !== 'string') {
+      return '{}';
+    }
+    
+    // Clean the text
+    let cleaned = text.trim();
+    
+    // Remove markdown code blocks
+    cleaned = cleaned.replace(/```json\\s*/gi, '').replace(/```\\s*/g, '');
+    
+    // Handle common prefixes like "Here is my evaluation in JSON format:"
+    const colonIndex = cleaned.indexOf(':');
+    if (colonIndex > 0 && colonIndex < 100) {
+      // Check if there's a '{' after the colon
+      const afterColon = cleaned.substring(colonIndex + 1).trim();
+      if (afterColon.startsWith('{')) {
+        cleaned = afterColon;
+      }
+    }
+    
+    // Try to find a complete JSON object with evaluation fields
+    // More comprehensive regex that handles nested objects and arrays
+    const objectMatch = cleaned.match(/\{[^{}]*"assessment"\s*:\s*"[^"]+?"[^{}]*(?:\{[^{}]*\}|\[[^\]]*\])*[^{}]*\}/);
+    if (objectMatch) {
+      try {
+        const parsed = JSON.parse(objectMatch[0]);
+        if (parsed.assessment) {
+          console.log('Bobby: Successfully extracted JSON from response');
+          return objectMatch[0];
+        }
+      } catch (e) {
+        console.warn('Bobby: Found JSON-like structure but parsing failed:', e);
+      }
+    }
+    
+    // Try finding JSON that might be on multiple lines
+    const multilineMatch = cleaned.match(/\{\s*\n?\s*"assessment"[\s\S]*?\n?\s*\}/);
+    if (multilineMatch) {
+      try {
+        const parsed = JSON.parse(multilineMatch[0]);
+        if (parsed.assessment) {
+          console.log('Bobby: Successfully extracted multiline JSON');
+          return multilineMatch[0];
+        }
+      } catch (e) {
+        // Continue to next method
+      }
+    }
+    
+    // Try the whole string after removing common phrases
+    const phrasesToRemove = [
+      /^.*?evaluation.*?:?\s*/i,
+      /^.*?JSON format.*?:?\s*/i,
+      /^.*?response.*?:?\s*/i
+    ];
+    
+    let stripped = cleaned;
+    for (const phrase of phrasesToRemove) {
+      stripped = stripped.replace(phrase, '');
+    }
+    
+    try {
+      const parsed = JSON.parse(stripped);
+      if (parsed.assessment) {
+        console.log('Bobby: Successfully parsed stripped JSON');
+        return stripped;
+      }
+    } catch (e) {
+      // Not valid JSON
+    }
+    
+    console.warn('Bobby: Could not extract valid JSON from evaluation response');
+    return '{}';
+  }
+
+  /**
+   * Extract evaluation from plain text response
+   */
+  extractEvaluationFromText(text) {
+    const lowerText = text.toLowerCase();
+    
+    // Determine assessment - be more thorough in checking
+    let assessment = 'unverifiable'; // Default to unverifiable instead of error
+    
+    // Check for "true" assessment - look for various patterns
+    if ((lowerText.includes('"assessment": "true"') || 
+         lowerText.includes('"assessment":"true"') ||
+         lowerText.includes('assessment is true') ||
+         lowerText.includes('claim is true') ||
+         lowerText.includes('claim is accurate') ||
+         lowerText.includes('claim is correct') ||
+         lowerText.includes('this is true')) && 
+        !lowerText.includes('not true') && 
+        !lowerText.includes('false')) {
+      assessment = 'true';
+    } 
+    // Check for "false" assessment
+    else if ((lowerText.includes('"assessment": "false"') || 
+              lowerText.includes('"assessment":"false"') ||
+              lowerText.includes('assessment is false') ||
+              lowerText.includes('claim is false') ||
+              lowerText.includes('claim is incorrect') ||
+              lowerText.includes('this is false')) && 
+             !lowerText.includes('not false')) {
+      assessment = 'false';
+    } 
+    // Check for partially true
+    else if (lowerText.includes('partially true') || 
+             lowerText.includes('partly true') ||
+             lowerText.includes('partially correct') ||
+             lowerText.includes('"assessment": "partially_true"')) {
+      assessment = 'partially_true';
+    } 
+    // Check for unverifiable
+    else if (lowerText.includes('unverifiable') || 
+             lowerText.includes('cannot verify') ||
+             lowerText.includes('cannot be verified') ||
+             lowerText.includes('"assessment": "unverifiable"')) {
+      assessment = 'unverifiable';
+    } 
+    // Check for needs context
+    else if (lowerText.includes('needs context') || 
+             lowerText.includes('requires context') ||
+             lowerText.includes('need more context') ||
+             lowerText.includes('"assessment": "needs_context"')) {
+      assessment = 'needs_context';
+    }
+    // Only mark as error if we see explicit error indicators
+    else if (lowerText.includes('error') || 
+             lowerText.includes('failed') ||
+             lowerText.includes('unable to evaluate')) {
+      assessment = 'error';
+    }
+    
+    // Extract confidence if mentioned
+    let confidence = 0;
+    const confidenceMatch = text.match(/(\d+)%?\s*(?:confidence|certain)/i);
+    if (confidenceMatch) {
+      confidence = parseInt(confidenceMatch[1]);
+    } else {
+      // Default confidence based on assessment
+      const defaultConfidence = {
+        'true': 75,
+        'false': 75,
+        'partially_true': 60,
+        'unverifiable': 30,
+        'needs_context': 40,
+        'error': 0
+      };
+      confidence = defaultConfidence[assessment] || 0;
+    }
+    
+    // Create summary - look for key phrases
+    let summary = 'Unable to evaluate claim based on available sources.';
+    
+    // Try to find a conclusion or summary statement
+    const summaryPatterns = [
+      /(?:in summary|in conclusion|overall|therefore)[^.!?]*[.!?]/i,
+      /(?:the claim|this claim)[^.!?]*(?:is|appears|seems)[^.!?]*[.!?]/i,
+      /(?:evidence|sources|data)[^.!?]*(?:suggest|indicate|show)[^.!?]*[.!?]/i,
+      /"summary"\s*:\s*"([^"]+)"/i  // Look for JSON summary field
+    ];
+    
+    for (const pattern of summaryPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        // If it's the JSON pattern, use the captured group
+        summary = match[1] || match[0].trim();
+        break;
+      }
+    }
+    
+    // If no pattern matched, use first sentence
+    if (summary === 'Unable to evaluate claim based on available sources.') {
+      const sentences = text.match(/[^.!?]+[.!?]/g) || [text];
+      if (sentences[0]) {
+        summary = sentences[0].trim();
+      }
+    }
+    
+    // Limit summary length
+    if (summary.length > 150) {
+      summary = summary.substring(0, 147) + '...';
+    }
+    
+    return {
+      assessment,
+      confidence,
+      summary,
+      supporting_sources: []
+    };
   }
 
   /**

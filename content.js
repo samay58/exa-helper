@@ -685,13 +685,18 @@ async function analyzeText(mode, prompt = null) {
       currentResponse = response.result;
       displayResult(response.result, response.fromCache);
       
-      // Save to history
-      const historyEntry = await window.HistoryManager.addToHistory(
-        selectedText,
-        response.result,
-        mode
-      );
-      window.currentHistoryId = historyEntry.id;
+      // Save to history (non-blocking)
+      try {
+        const historyEntry = await window.HistoryManager.addToHistory(
+          selectedText,
+          response.result,
+          mode
+        );
+        window.currentHistoryId = historyEntry.id;
+      } catch (historyError) {
+        console.warn('Bobby: Could not save to history (non-fatal):', historyError);
+        // Continue without history - analysis still works
+      }
       
     } else {
       displayError(response?.error || 'Unknown error occurred');
@@ -742,8 +747,21 @@ async function showFactCheckView() {
       window.BOBBY_CONFIG.EXA_API_KEY
     );
     
-    // Extract claims
-    const claims = await detector.extractClaims(selectedText);
+    // Extract claims with better error handling
+    let claims;
+    try {
+      claims = await detector.extractClaims(selectedText);
+      console.log('Bobby: Extracted claims:', claims);
+    } catch (extractError) {
+      console.error('Bobby: Failed to extract claims:', extractError);
+      displayError('Unable to extract claims from the selected text. Please try selecting a clearer passage with factual statements.');
+      return;
+    }
+    
+    if (!claims || claims.length === 0) {
+      displayError('No verifiable claims found in the selected text. Please select text that contains factual statements.');
+      return;
+    }
     
     // Update UI to show progress
     resultDiv.innerHTML = `
@@ -777,26 +795,18 @@ async function showFactCheckView() {
         progressStatus.textContent = `Analyzing claim ${i + 1} of ${claims.length}...`;
       }
       
-      try {
-        const verification = await detector.verifyClaim(claim.claim, claim.original_text);
-        verifications.push(verification);
-        
-        // Add a small delay between API calls to avoid rate limits
-        if (i < claims.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
-        }
-      } catch (verifyError) {
-        console.error('Error verifying claim:', verifyError);
-        // Continue with error result for this claim
-        verifications.push({
-          claim: claim.claim,
-          assessment: 'error',
-          confidence: 0,
-          summary: verifyError.message.includes('Rate limit') ? 
-            'API rate limit reached. Please wait a moment before trying again.' : 
-            `Verification failed: ${verifyError.message || 'Unable to verify this claim.'}`,
-          sources: []
-        });
+      // Always await the verification (it now handles errors internally)
+      const verification = await detector.verifyClaim(claim, selectedText);
+      verifications.push(verification);
+      
+      // Update UI to show claim status
+      if (resultDiv.querySelector('.bobby-fact-check-claims')) {
+        updateClaimInUI(i, verification);
+      }
+      
+      // Add a small delay between API calls to avoid rate limits
+      if (i < claims.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
       }
     }
     
@@ -805,14 +815,19 @@ async function showFactCheckView() {
       const results = detector.formatResults(claims, verifications);
       displayFactCheckResults(results);
       
-      // Save to history
-      const historyEntry = await window.HistoryManager.addToHistory(
-        selectedText,
-        JSON.stringify(results),
-        'factcheck',
-        { factCheckData: results }
-      );
-      window.currentHistoryId = historyEntry.id;
+      // Save to history (non-blocking)
+      try {
+        const historyEntry = await window.HistoryManager.addToHistory(
+          selectedText,
+          JSON.stringify(results),
+          'factcheck',
+          { factCheckData: results }
+        );
+        window.currentHistoryId = historyEntry.id;
+      } catch (historyError) {
+        console.warn('Bobby: Could not save to history (non-fatal):', historyError);
+        // Continue without history - don't interrupt the user experience
+      }
     } else {
       throw new Error('No claims could be verified. Please try again later.');
     }
@@ -821,11 +836,31 @@ async function showFactCheckView() {
     console.error('Error during fact check:', error);
     // Show user-friendly error message
     if (error.message.includes('Rate limit') || error.message.includes('429')) {
-      displayError('Rate limit exceeded. Please try again later.');
+      displayError('Rate limit exceeded. Please wait a moment and try again.');
     } else if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('400')) {
-      displayError('Invalid API key. Please check your API configuration in config.js and reload the extension.');
+      displayError('Invalid API key. Please check your configuration and reload the extension.');
+    } else if (error.message.includes('quota')) {
+      // Storage quota error - but fact check still completed
+      console.warn('Bobby: Storage quota exceeded, but fact-check completed successfully');
+      // Don't show error to user since the main functionality worked
     } else {
-      displayError(error.message);
+      displayError('Unable to complete fact-check. Please try selecting different text.');
+    }
+  }
+}
+
+// Update claim status in UI during processing
+function updateClaimInUI(index, verification) {
+  const claimElements = document.querySelectorAll('.bobby-fact-check-claim');
+  if (claimElements[index]) {
+    const element = claimElements[index];
+    element.classList.remove('processing');
+    element.classList.add(verification.assessment);
+    
+    // Update status icon
+    const statusIcon = element.querySelector('.bobby-claim-status-icon');
+    if (statusIcon) {
+      statusIcon.textContent = getStatusIcon(verification.assessment);
     }
   }
 }
@@ -891,6 +926,7 @@ function displayFactCheckResults(results) {
   `;
   
   const claimsHtml = results.verifications.map((v, index) => {
+    console.log(`Bobby: Rendering claim ${index}:`, v);
     const statusClass = `bobby-claim-${v.assessment}`;
     const statusIcon = getStatusIcon(v.assessment);
     const statusLabel = getStatusLabel(v.assessment);

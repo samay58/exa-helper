@@ -1,5 +1,142 @@
 # Bobby Chrome Extension - Development Logs
 
+## Session 14 - Fact-Check Display Bug Fix
+**Date**: 2025-07-30
+**Duration**: Completed
+**Status**: ✅ Successful
+
+### 🎯 Objectives
+- Fix fact-check results showing as ERROR despite successful evaluation ✅
+- Improve JSON extraction for responses with prefixed text ✅
+- Enhance error recovery to avoid false error states ✅
+- Add debugging capabilities for future issues ✅
+
+### ✅ Completed
+
+1. **Enhanced JSON Extraction**
+   - **Colon Prefix Handling**: Now detects and strips text before colons (e.g., "Here is my evaluation in JSON format:")
+   - **Improved Regex Patterns**: More comprehensive patterns for nested objects and arrays
+   - **Multiline Support**: Can extract JSON spanning multiple lines
+   - **Common Phrase Removal**: Strips phrases like "evaluation", "JSON format", "response"
+   - **Better Logging**: Clear console messages for successful extraction
+
+2. **Improved Fallback Logic**
+   - **Changed Default**: From 'error' to 'unverifiable' for unclear responses
+   - **More Detection Patterns**: 
+     - Checks for `"assessment": "true"` within text
+     - Detects phrases like "claim is accurate", "claim is correct"
+     - Looks for JSON fields embedded in responses
+   - **Smart Error Detection**: Only marks as 'error' with explicit indicators
+   - **JSON Field Extraction**: Can pull summary from `"summary": "..."` patterns
+
+3. **Debug Logging**
+   - Added console logs for JSON extraction success/failure
+   - Logs fallback extraction attempts and results
+   - Shows each claim verification as it's rendered
+   - Helps identify parsing vs display issues
+
+### 📁 Files Modified
+- `components/modules/HallucinationDetector.js`:
+  - `extractEvaluationJSON()` - Enhanced with colon handling and better patterns
+  - `extractEvaluationFromText()` - Improved assessment detection
+  - Added comprehensive logging throughout
+- `content.js`:
+  - Added claim rendering debug logs in `displayFactCheckResults()`
+
+### 🐛 Issues Fixed
+- Claims evaluated as "true" were showing as "ERROR" in UI
+- JSON prefixed with explanatory text wasn't being parsed
+- Fallback mechanism was too aggressive in marking errors
+- No visibility into what was being extracted vs displayed
+
+### 💡 Key Learnings
+- LLMs often add helpful prefixes that break strict JSON parsing
+- Looking for patterns after colons catches most prefixed responses
+- Default to 'unverifiable' rather than 'error' for better UX
+- Strategic logging helps diagnose display vs parsing issues
+
+### 📊 Technical Details
+- Colon detection: Checks first 100 characters for ':' followed by '{'
+- Regex improvements: Handles `\{[^{}]*"assessment"\s*:\s*"[^"]+?"[^{}]*(?:\{[^{}]*\}|\[[^\]]*\])*[^{}]*\}`
+- Fallback patterns: 15+ different phrases checked for assessment type
+- Console logs: Added at extraction, parsing, fallback, and rendering stages
+
+## Session 13 - Critical Fact-Check Module Fixes
+**Date**: 2025-07-30
+**Duration**: Completed
+**Status**: ✅ Successful
+
+### 🎯 Objectives
+- Fix fact-check module not working due to JSON parsing failures ✅
+- Resolve Chrome storage quota exceeded errors ✅
+- Improve error recovery and user experience ✅
+- Ensure fact-check works reliably with various text inputs ✅
+
+### ✅ Completed
+
+1. **Fixed Fact-Check JSON Response Issues**
+   - **Strengthened Evaluation Prompt**:
+     - Added "RESPOND WITH ONLY JSON:" directive at start
+     - Provided explicit JSON format example
+     - Set strict rules: "Begin with { and end with }"
+     - Reduced temperature to 0.1 for factcheck mode
+   - **Enhanced Claim Extraction**:
+     - Simplified prompt to force JSON-only responses
+     - Added retry logic (up to 3 attempts)
+     - Improved JSON extraction regex patterns
+   - **Robust Fallback Parsing**:
+     - Better pattern matching for assessment detection
+     - Extracts confidence and summary from plain text
+     - Default confidence values based on assessment type
+     - Searches for conclusion statements in responses
+
+2. **Resolved Storage Quota Issues**
+   - **Automatic Cleanup**:
+     - Keeps only last 50 history entries
+     - Removes 20 oldest entries when quota exceeded
+     - Clears cache entries if storage > 5MB
+   - **Proactive Management**:
+     - Cleanup on init if history > 70 entries
+     - Non-blocking save operations
+   - **Graceful Error Handling**:
+     - Storage errors don't interrupt user experience
+     - Core functionality continues without history
+     - Silent logging for non-critical storage errors
+
+3. **UI/UX Improvements**
+   - Better loading states with progress indicators
+   - Individual claim status updates during processing
+   - Clear, user-friendly error messages
+   - Processing animations and visual feedback
+   - Added retry button styles for failed verifications
+
+### 📁 Files Modified
+- `background.js` - Strengthened prompts, reduced temperature for factcheck
+- `components/modules/HallucinationDetector.js` - Enhanced JSON parsing, better fallbacks
+- `components/modules/HistoryManager.js` - Storage cleanup and quota management
+- `content.js` - Non-blocking history saves, better error handling
+- `styles-v2.css` - Improved loading and error states
+
+### 🐛 Issues Fixed
+- AI returning text summaries instead of JSON for fact-check
+- "Resource::kQuotaBytes quota exceeded" preventing history saves
+- Fact-check failing completely when JSON parsing failed
+- Poor error messages confusing users
+
+### 💡 Key Learnings
+- Multiple approaches needed to enforce JSON responses from LLMs
+- Storage quota management must be proactive, not reactive
+- Error handling should be graceful - core features should work even if auxiliary features fail
+- Clear, specific prompts with examples work better than complex instructions
+
+### 📊 Technical Details
+- Storage limit: 50 history entries (was unlimited)
+- Cleanup trigger: 70 entries (removes 20 oldest)
+- Cache cleanup: When total storage > 5MB
+- Factcheck temperature: 0.1 (was 0.7)
+- Claim extraction retries: 3 attempts
+- Processing delay between claims: 500ms (rate limit prevention)
+
 ## Session 12 - UI Polish & Fact-Check Error Handling
 **Date**: 2025-07-28
 **Duration**: Completed
@@ -362,6 +499,71 @@
 ### 🚀 Next Steps
 1. Immediate next task
 2. Future consideration
+
+---
+
+## Session 15 - Critical Blur Elimination for Text Clarity
+**Date**: 2025-08-05
+**Duration**: Completed
+**Status**: ✅ Successful
+
+### 🎯 Objectives
+- Eliminate all blur effects causing text readability issues ✅
+- Maintain liquid glass aesthetic without compromising clarity ✅
+- Increase background opacity for better contrast ✅
+
+### ✅ Completed
+
+1. **Complete Blur Removal**
+   - **Set all blur variables to 0px**:
+     - `--liquid-blur-heavy`: `blur(0px)` (was 1px)
+     - `--liquid-blur-medium`: `blur(0px)` (was 0.5px)
+     - `--liquid-blur-soft`: `blur(0px)` (was 0.25px)
+     - `--liquid-blur-subtle`: `blur(0px)` (already was 0px)
+   
+2. **Removed backdrop-filter from all elements**:
+   - Main popup container (`.bobby-popup-v2`): `backdrop-filter: none`
+   - Popup pseudo-elements (::before, ::after): `backdrop-filter: none`
+   - All buttons: Changed from `blur(0.5px)` to `none`
+   - All UI elements: Replaced `blur(...)` with `none`
+   - Kept `saturate()` effects for color vibrancy
+
+3. **Increased Background Opacity**:
+   - Light mode: `rgba(248, 250, 255, 0.85)` (was 0.4)
+   - Dark mode: `rgba(15, 20, 35, 0.9)` (was 0.35)
+   - Better contrast without relying on blur for glass effect
+
+4. **Maintained Glassmorphism Through**:
+   - Semi-transparent backgrounds with high opacity
+   - Gradient overlays for depth perception
+   - Subtle shadows and border effects
+   - Preserved all liquid animations (breathing, shimmer, etc.)
+
+### 📁 Files Modified
+- `styles-v2.css`:
+  - Lines 43-46: Set all blur variables to 0px
+  - Line 146-147: Removed backdrop-filter from main popup
+  - Line 186-187: Removed backdrop-filter from pseudo-elements
+  - Multiple lines: Replaced all blur values with none
+  - Lines 28-29, 106-107: Increased background opacity
+
+### 🐛 Issues Fixed
+- Extreme blur making entire interface unreadable
+- Text appearing fuzzy and difficult to read
+- Multiple blur layers compounding the problem
+- Poor contrast due to low opacity backgrounds
+
+### 💡 Key Learnings
+- ANY blur on parent containers affects all child content
+- Glassmorphism can be achieved without blur through transparency
+- Higher opacity backgrounds provide better readability
+- Saturate effects maintain vibrancy without blur
+
+### 📊 Technical Details
+- Total blur instances removed: 30+
+- Background opacity increase: 45% → 85% (light), 35% → 90% (dark)
+- All `backdrop-filter: blur(...)` replaced with `backdrop-filter: none`
+- Preserved `saturate()` values: 180%, 130%, 110%, 105%
 
 ---
 

@@ -229,7 +229,7 @@ async function handleAnthropicRequest(text, mode, systemPrompt, userPrompt, send
         }
       ],
       max_tokens: mode === 'eli5' ? 400 : (mode === 'summarize' ? 300 : 600),
-      temperature: mode === 'extractClaims' ? 0.3 : 0.7
+      temperature: mode === 'extractClaims' || mode === 'factcheck' ? 0.1 : 0.7
     };
     
     console.log('Bobby: Sending request to Anthropic API');
@@ -622,33 +622,25 @@ function generatePrompt(text, mode) {
     examples: `${useAnthropic ? 'Examples illustrating: ' : 'Provide relevant examples that illustrate the concepts in the following text:\n\n'}"${text}"`,
     proscons: `${useAnthropic ? 'Pros and cons in: ' : 'List the pros and cons or advantages and disadvantages discussed in the following text:\n\n'}"${text}"`,
     factcheck: `${useAnthropic ? 'Factual claims to verify in: ' : 'Identify any factual claims in the following text that should be verified:\n\n'}"${text}"`,
-    extractClaims: `Extract specific, verifiable factual claims from the given text. 
+    extractClaims: `You are a claim extraction system. Your response must be ONLY a JSON array with no other text.
 
-IMPORTANT: Return ONLY a valid JSON array. Do not include any explanatory text before or after the JSON.
-
-For each claim, create an object with these fields:
-- "claim": The COMPLETE factual claim as a full sentence (must end with proper punctuation)
-- "original_text": The original text containing this claim
-- "type": One of "statistical", "historical", "scientific", "technological", or "general"
+Extract verifiable factual claims from this text: "${text}"
 
 Rules:
-1. Each claim must be a complete, grammatically correct sentence
-2. Include all relevant context within the claim itself
-3. Focus on statements that can be verified or fact-checked
-4. Avoid breaking up related information into fragments
+- Each claim must be a complete sentence with subject, verb, and object
+- Include names, numbers, and specific details in the claim
+- Each claim should stand alone without needing external context
+- Focus on statements that can be fact-checked
 
-Example format:
-[
-  {
-    "claim": "GPT-4 significantly improved legal workflow handling compared to GPT-3.5.",
-    "original_text": "Legal workflows did not work on GPT 3.5 but with GPT4 really took off",
-    "type": "technological"
-  }
-]
+Required JSON structure:
+[{"claim": "complete sentence here.", "original_text": "source text", "type": "category"}]
 
-Text to analyze: "${text}"
+Valid types: statistical, historical, scientific, technological, general
 
-Return ONLY the JSON array:`
+Example input: "Ford CEO Jim Farley said AI will eliminate 50% of white-collar jobs by 2030."
+Example output: [{"claim": "Ford CEO Jim Farley said AI will eliminate 50% of white-collar jobs by 2030.", "original_text": "Ford CEO Jim Farley said AI will eliminate 50% of white-collar jobs by 2030.", "type": "statistical"}]
+
+CRITICAL: Output ONLY the JSON array. No explanations, no markdown, just the array.`
   };
   
   return prompts[mode] || prompts.explain;

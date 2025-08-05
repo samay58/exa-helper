@@ -19,9 +19,17 @@ class HistoryManager {
       const stored = await chrome.storage.local.get(this.storageKey);
       this.history = stored[this.storageKey] || [];
       this.initialized = true;
+      
+      // Proactive cleanup on init if history is large
+      if (this.history.length > 70) {
+        console.log('Bobby: Proactive history cleanup on init');
+        await this.cleanupOldEntries();
+        await this.save();
+      }
     } catch (error) {
       console.error('Error initializing history:', error);
       this.history = [];
+      this.initialized = true;
     }
   }
 
@@ -240,7 +248,7 @@ class HistoryManager {
   }
 
   /**
-   * Save history to storage
+   * Save history to storage with automatic cleanup
    */
   async save() {
     try {
@@ -249,7 +257,56 @@ class HistoryManager {
       });
     } catch (error) {
       console.error('Error saving history:', error);
-      throw error;
+      
+      // If quota exceeded, clean up old entries
+      if (error.message && error.message.includes('quota')) {
+        console.log('Bobby: Storage quota exceeded, cleaning up old entries...');
+        await this.cleanupOldEntries();
+        
+        // Try saving again after cleanup
+        try {
+          await chrome.storage.local.set({
+            [this.storageKey]: this.history
+          });
+          console.log('Bobby: Successfully saved after cleanup');
+        } catch (retryError) {
+          console.error('Bobby: Still failed after cleanup:', retryError);
+          // Don't throw - allow operation to continue without history
+        }
+      } else {
+        // Don't throw for storage errors - allow extension to continue working
+        console.error('Bobby: Storage error (non-fatal):', error);
+      }
+    }
+  }
+  
+  /**
+   * Clean up old entries to free storage space
+   */
+  async cleanupOldEntries() {
+    const maxEntries = 50; // Keep only last 50 entries
+    const entriesToRemove = 20; // Remove 20 oldest entries at a time
+    
+    if (this.history.length > maxEntries) {
+      // Sort by timestamp (oldest first)
+      this.history.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      
+      // Remove oldest entries
+      const removed = this.history.splice(0, entriesToRemove);
+      console.log(`Bobby: Removed ${removed.length} old history entries`);
+      
+      // Also clear other storage data if needed
+      const storageData = await chrome.storage.local.get(null);
+      const storageSize = JSON.stringify(storageData).length;
+      
+      if (storageSize > 5000000) { // If over 5MB
+        // Clear cache entries
+        const cacheKeys = Object.keys(storageData).filter(key => key.startsWith('cache_'));
+        if (cacheKeys.length > 0) {
+          await chrome.storage.local.remove(cacheKeys);
+          console.log(`Bobby: Cleared ${cacheKeys.length} cache entries`);
+        }
+      }
     }
   }
 

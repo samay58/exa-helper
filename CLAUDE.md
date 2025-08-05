@@ -139,35 +139,87 @@ Scripts run in isolated world, separate from page JavaScript. Use `window` objec
 ### API Key Security
 Keys are stored in `config.js` (gitignored). Background script loads config dynamically to access keys.
 
-## Current Issues & Solutions
+## Blur Management Guidelines
 
-### Excessive Blur (Session 11) - RESOLVED ✅
-**Problem**: Interface was unreadable with 40px blur values
-**Solution**: Reduced all blur values to 4px max, removed blur from content areas
-- Main popup: 4px blur
-- Content areas: no blur
-- Buttons: 2px blur
-- Maintained glassmorphism with restraint
+**CRITICAL UPDATE (Session 15)**: All blur has been removed for maximum text clarity
+- ALL blur values are now set to 0px to ensure crystal clear text
+- Glassmorphism is achieved through transparency and gradients only
+- Background opacity increased to 85% (light) and 90% (dark) for better contrast
+- Content areas must have NO blur (`backdrop-filter: none`)
+- Parent container blur affects ALL child content - avoid at all costs
 
-### Fact-Check JSON Parsing (Session 11) - RESOLVED ✅
-**Problem**: "Failed to parse evaluation response" errors
-**Solution**: Improved JSON extraction and error handling
-- Updated prompts to explicitly request "ONLY JSON"
-- Added extractJSON() method to handle mixed content
-- Implemented fallback parsing methods
-- Better error messages instead of failures
+**Current blur values in styles-v2.css (as of Session 15):**
+- `--liquid-blur-heavy`: 0px (no blur)
+- `--liquid-blur-medium`: 0px (no blur)
+- `--liquid-blur-soft`: 0px (no blur)
+- `--liquid-blur-subtle`: 0px (no blur)
 
-### Anthropic Integration (Session 9) - RESOLVED ✅
-**Solution**: Successfully switched to Anthropic Claude 3.5 Sonnet
-- No more rate limit errors
-- Added proper CORS headers for browser access
-- Implemented API key validation
-- Optimized prompts for concise outputs
+**Glassmorphism without blur:**
+- Use semi-transparent backgrounds (rgba with 0.85+ opacity)
+- Apply gradient overlays for depth
+- Keep saturate() effects for color vibrancy
+- Use subtle shadows and borders for definition
 
-### Button Layout Issues (Session 8) - RESOLVED ✅
-**Problem**: Buttons display incorrectly when styles don't load properly
-**Solution**: Ensure `USE_GLASSMORPHISM: true` in config.js
-**Fixed**: Added button styles to both CSS files for compatibility
+## JSON Parsing in AI Responses
+
+**Problem**: AI responses often include explanatory text around JSON, causing parsing failures
+
+**Solution**: Implemented in `HallucinationDetector.js`:
+1. **Stronger Prompts**: 
+   - Start with "RESPOND WITH ONLY JSON:"
+   - Provide explicit format examples
+   - Use temperature 0.1 for consistency
+2. **Enhanced extractJSON() Method**: 
+   - Detects and strips text before colons (e.g., "Here is my evaluation:")
+   - Multiple regex patterns for nested objects and arrays
+   - Handles multiline JSON extraction
+   - Removes common phrases like "evaluation", "JSON format"
+3. **Retry Logic**: Up to 3 attempts for claim extraction
+4. **Robust Fallbacks**: 
+   - extractEvaluationFromText() with 15+ pattern checks
+   - Defaults to 'unverifiable' instead of 'error'
+   - Extracts JSON fields from within text
+   - Smart error detection only for explicit failures
+
+**Key Pattern**:
+```javascript
+// Extract JSON from mixed content
+const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+if (arrayMatch) return arrayMatch[0];
+```
+
+## Storage Management
+
+**Problem**: Chrome storage quota exceeded errors interrupting functionality
+
+**Solution**: Implemented in `HistoryManager.js`:
+1. **Automatic Cleanup**:
+   - Keeps only last 50 history entries
+   - Removes 20 oldest when quota exceeded
+   - Clears cache if storage > 5MB
+2. **Proactive Management**:
+   - Cleanup on init if > 70 entries
+   - Non-blocking save operations
+3. **Graceful Degradation**:
+   - Core features work without history
+   - Silent logging for non-critical errors
+
+## Important File References
+
+- **background.js:169-282** - Anthropic/OpenAI API request handling
+- **background.js:232** - Temperature settings (0.1 for factcheck/extractClaims)
+- **background.js:625-643** - extractClaims prompt (JSON-only format)
+- **content.js:688-699** - Non-blocking history saves
+- **content.js:813-825** - Fact-check history error handling
+- **content.js:838-840** - Storage quota error suppression
+- **styles-v2.css:2709-2823** - Improved loading/error states
+- **styles-v2.css:43-46** - Blur variables (all set to 0px as of Session 15)
+- **styles-v2.css:28-29, 106-107** - Background opacity settings (0.85/0.9)
+- **components/modules/HallucinationDetector.js:15-93** - Claim extraction with retries
+- **components/modules/HallucinationDetector.js:175-203** - Strengthened evaluation prompt
+- **components/modules/HallucinationDetector.js:518-592** - Enhanced JSON extraction with colon handling
+- **components/modules/HallucinationDetector.js:597-651** - Improved fallback parsing with 15+ patterns
+- **components/modules/HistoryManager.js:245-303** - Storage cleanup implementation
 
 ## Testing Checklist
 
@@ -179,78 +231,3 @@ When making changes, test:
 5. API responses for all modes
 6. Error handling for rate limits
 7. Console for any errors
-
-## Blur Management Guidelines (Session 11)
-
-**IMPORTANT**: Keep blur values minimal for readability
-- Maximum blur should be 4-6px for main elements
-- Content areas should have NO blur (`backdrop-filter: none`)
-- Button areas can handle light blur (2px max)
-- Multiple blur layers compound quickly and create unusable interfaces
-
-**Current blur values in styles-v2.css:**
-- `--liquid-blur-heavy`: 6px (for backgrounds only)
-- `--liquid-blur-medium`: 4px (main popup)
-- `--liquid-blur-soft`: 2px (buttons, UI elements)
-- `--liquid-blur-subtle`: 1px (minimal effects)
-
-## JSON Parsing in AI Responses (Session 11)
-
-**Problem**: AI responses often include explanatory text around JSON, causing parsing failures
-
-**Solution**: Implemented in `HallucinationDetector.js`:
-1. **Explicit Prompts**: Always request "Return ONLY the JSON array" with examples
-2. **extractJSON() Method**: Uses regex to find JSON within mixed content
-3. **Validation**: Check structure before using parsed data
-4. **Fallbacks**: extractAssessment() for non-JSON responses
-
-**Key Pattern**:
-```javascript
-// Extract JSON from mixed content
-const arrayMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
-if (arrayMatch) return arrayMatch[0];
-```
-
-## Important File References
-
-- **background.js:169-282** - Anthropic/OpenAI API request handling
-- **background.js:614-760** - API key validation functions
-- **background.js:625-651** - extractClaims prompt (complete sentences required)
-- **content.js:293-315** - Popup creation and initialization
-- **content.js:832-889** - Fact-check results display with error handling
-- **content.js:710-737** - Skeleton loader implementation
-- **styles-v2.css:24-28** - Reduced blur value definitions
-- **styles-v2.css:986-1009** - Semi-transparent analysis panels
-- **styles-v2.css:2063-2235** - Fact-check hero section styling
-- **styles-v2.css:2316-2318, 2442-2444** - Error status styling
-- **components/modules/PromptManager.js:15-50** - Optimized AI prompts
-- **components/modules/HallucinationDetector.js:338-378** - extractAssessment with error priority
-- **components/modules/HallucinationDetector.js:261-311** - Improved claim parsing
-
-## UI Performance Guidelines (Session 12)
-
-**Blur Management**:
-- Maximum blur: 3px for backgrounds, 1-2px for UI elements
-- Content areas: NO blur for readability
-- Multiple blur layers compound - avoid stacking
-
-**Panel Transparency**:
-- Light mode: rgba(255,255,255,0.25) for integration
-- Dark mode: rgba(30,36,48,0.35) for consistency
-- Avoid opaque backgrounds that break visual flow
-
-**Error Handling**:
-- Always check for error indicators first in parsing
-- Display clear, actionable error messages
-- Exclude errors from reliability calculations
-- Use distinct visual styling (red #dc2626)
-
-## Session Logs Reference
-
-See `logs.md` for detailed session history:
-- Session 12: UI polish, blur reduction, fact-check error handling
-- Session 11: Excessive blur fixes, fact-check JSON parsing
-- Session 9: Anthropic API integration & prompt optimization
-- Session 8: Button layout fixes & rate limit issues
-- Session 7: Visual Polish V2 implementation
-- Earlier sessions: Core functionality implementation
