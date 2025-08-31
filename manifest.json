@@ -39,6 +39,8 @@
         "components/modules/ParticleEffects.js",
         "components/modules/InteractionEffects.js",
         "components/modules/ThemeManager.js",
+        "components/modules/RaunoEffects.js",
+        "components/modules/GridSystem.js",
         "components/modules/ModuleLoader.js",
         "content.js"
       ],
@@ -61,7 +63,8 @@
         "config.js",
         "components/modules/*.js",
         "assets/**/*",
-        "styles-v2.css"
+        "styles-v2.css",
+        "styles-rauno.css"
       ],
       "matches": ["<all_urls>"]
     }

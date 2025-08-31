@@ -1,8 +1,15 @@
 // Bobby Chrome Extension - Enhanced Content Script
 // Handles text selection, UI injection, fact-checking, and follow-up questions
 
-// Load V2 styles if glassmorphism is enabled
-if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM) {
+// Load appropriate styles based on feature flags
+if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE) {
+  // Load Rauno design system CSS
+  const raunoStyles = document.createElement('link');
+  raunoStyles.rel = 'stylesheet';
+  raunoStyles.href = chrome.runtime.getURL('styles-rauno.css');
+  document.head.appendChild(raunoStyles);
+} else if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM) {
+  // Load V2 glassmorphism styles
   const v2Styles = document.createElement('link');
   v2Styles.rel = 'stylesheet';
   v2Styles.href = chrome.runtime.getURL('styles-v2.css');
@@ -50,6 +57,15 @@ var particleEffects = null;
 var contentAnalyzer = null;
 var interactionEffects = null;
 var themeManager = null;
+
+// Conversation threading state
+var conversationThread = {
+  originalText: '',        // The originally selected text
+  originalUrl: '',         // The page URL where text was selected
+  conversations: [],       // Array of {question, answer, mode, timestamp} pairs
+  startTime: null,        // When conversation started
+  lastActivity: null      // Last interaction time
+};
 
 // Initialize content script
 function init() {
@@ -264,6 +280,15 @@ function hideFAB() {
 async function showPopup() {
   console.log('Bobby: showPopup called, buttonManager:', !!buttonManager, 'window.ButtonManager:', !!window.ButtonManager);
   
+  // Initialize conversation thread for new selection
+  conversationThread = {
+    originalText: selectedText,
+    originalUrl: window.location.href,
+    conversations: [],
+    startTime: Date.now(),
+    lastActivity: Date.now()
+  };
+  
   // Ensure buttonManager is initialized (check for both null and false)
   if (!buttonManager || buttonManager === false) {
     console.error('Bobby: Cannot show popup - ButtonManager not initialized');
@@ -285,85 +310,160 @@ async function showPopup() {
   // Create popup container
   popupWindow = document.createElement('div');
   const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
-  popupWindow.className = useV2 ? 'bobby-popup-v2' : 'bobby-popup';
+  const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
+  popupWindow.className = useRauno ? 'bobby-popup-rauno' : (useV2 ? 'bobby-popup-v2' : 'bobby-popup');
+  
+  // Set origin point for animations if Rauno mode
+  if (useRauno && window.RaunoEffects) {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+      
+      // Store origin in popup for animation
+      popupWindow.style.setProperty('--origin-x', `${originX}px`);
+      popupWindow.style.setProperty('--origin-y', `${originY}px`);
+      
+      // Initialize Rauno effects if not already done
+      if (!window.raunoEffects) {
+        window.raunoEffects = new window.RaunoEffects();
+      }
+      window.raunoEffects.setOrigin(originX, originY);
+    }
+  }
   
   // Create collapsed text preview
   const textPreview = selectedText.length > 50 
     ? `${selectedText.substring(0, 50)}...` 
     : selectedText;
   
-  popupWindow.innerHTML = `
-    <div class="bobby-glass-grain"></div>
-    <div class="bobby-header">
-      <div class="bobby-drag-handle">⋮⋮</div>
-      <img src="${chrome.runtime.getURL('assets/icons/bobby-typeface-logo.png')}" alt="Bobby" class="bobby-logo">
-      <div class="bobby-header-actions"></div>
-    </div>
-    
-    <div class="bobby-selected-context">
-      <div class="bobby-context-header">
-        <span class="bobby-context-label">Selected text:</span>
-        <span class="bobby-context-preview">"${escapeHtml(textPreview)}"</span>
-        ${selectedText.length > 50 ? '<button class="bobby-context-toggle">▼</button>' : ''}
+  // Use Rauno structure if enabled
+  if (useRauno) {
+    popupWindow.innerHTML = `
+      <div class="bobby-header-rauno">
+        <div class="bobby-logo">
+          <img src="${chrome.runtime.getURL('assets/icons/bobby-typeface-logo.png')}" alt="Bobby" width="24" height="24">
+          <span>Bobby</span>
+        </div>
+        <div class="bobby-header-actions"></div>
       </div>
-      <div class="bobby-context-full" style="display: none;">
-        <p>${escapeHtml(selectedText)}</p>
+      
+      <div class="bobby-selected-context">
+        <div class="bobby-context-header">
+          <span class="bobby-context-label">Selected:</span>
+          <span class="bobby-context-preview">"${escapeHtml(textPreview)}"</span>
+        </div>
       </div>
-    </div>
-    
-    <div class="bobby-prompt-bar">
-      ${createPromptButtons()}
-    </div>
-    
-    <div class="${useV2 ? 'bobby-content-v2' : 'bobby-content'}">
-      <div class="${useV2 ? 'bobby-result-v2' : 'bobby-result'}">
-        ${useV2 ? 
-          new window.UIComponents().createGlassmorphismLoader('Choose an analysis mode above...') :
-          `<div class="bobby-loader">
-            <div class="bobby-spinner"></div>
-            <p>Choose an analysis mode above...</p>
-          </div>`
-        }
+      
+      <div class="bobby-modes-rauno-container"></div>
+      
+      <div class="bobby-content-rauno">
+        <div class="bobby-analysis-rauno">
+          <div class="bobby-skeleton-rauno"></div>
+          <div class="bobby-skeleton-rauno" style="width: 80%;"></div>
+          <div class="bobby-skeleton-rauno" style="width: 60%;"></div>
+        </div>
       </div>
-    </div>
-    
-    <div class="bobby-footer">
-      <button class="bobby-followup-btn">
-        <span>💬</span> Ask Follow-up Question
-      </button>
-    </div>
-    
-    <div class="bobby-resize-handle"></div>
-  `;
+      
+      <div class="bobby-footer-rauno">
+        <!-- Follow-up moved to content area -->
+      </div>
+    `;
+  } else {
+    // Original structure for non-Rauno mode
+    popupWindow.innerHTML = `
+      <div class="bobby-glass-grain"></div>
+      <div class="bobby-header">
+        <div class="bobby-drag-handle">⋮⋮</div>
+        <img src="${chrome.runtime.getURL('assets/icons/bobby-typeface-logo.png')}" alt="Bobby" class="bobby-logo">
+        <div class="bobby-header-actions"></div>
+      </div>
+      
+      <div class="bobby-selected-context">
+        <div class="bobby-context-header">
+          <span class="bobby-context-label">Selected text:</span>
+          <span class="bobby-context-preview">"${escapeHtml(textPreview)}"</span>
+          ${selectedText.length > 50 ? '<button class="bobby-context-toggle">▼</button>' : ''}
+        </div>
+        <div class="bobby-context-full" style="display: none;">
+          <p>${escapeHtml(selectedText)}</p>
+        </div>
+      </div>
+      
+      <div class="bobby-prompt-bar">
+        ${createPromptButtons()}
+      </div>
+      
+      <div class="${useV2 ? 'bobby-content-v2' : 'bobby-content'}">
+        <div class="${useV2 ? 'bobby-result-v2' : 'bobby-result'}">
+          ${useV2 ? 
+            new window.UIComponents().createGlassmorphismLoader('Choose an analysis mode above...') :
+            `<div class="bobby-loader">
+              <div class="bobby-spinner"></div>
+              <p>Choose an analysis mode above...</p>
+            </div>`
+          }
+        </div>
+      </div>
+      
+      <div class="bobby-footer">
+        <!-- Follow-up moved to content area -->
+      </div>
+      
+      <div class="bobby-resize-handle"></div>
+    `;
+  }
   
   // Add to page
   document.body.appendChild(popupWindow);
   
-  // Apply adaptive theme if enabled
-  if (themeManager && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_ADAPTIVE_THEME) {
+  // Apply adaptive theme if enabled (but not in Rauno mode)
+  if (themeManager && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_ADAPTIVE_THEME && !useRauno) {
     themeManager.applyTheme(popupWindow);
   }
   
   // Add action buttons to header
   const headerActions = popupWindow.querySelector('.bobby-header-actions');
-  const actionButtons = buttonManager.createActionButtons();
-  headerActions.appendChild(actionButtons.copy);
-  // Only add favorite button if there's enough space
-  // Commenting out for now to clean up the UI
-  // headerActions.appendChild(actionButtons.favorite);
-  headerActions.appendChild(actionButtons.close);
+  if (headerActions) {
+    if (useRauno) {
+      // Create Swiss minimalist close button
+      const closeBtn = buttonManager.createRaunoCloseButton();
+      headerActions.appendChild(closeBtn);
+    } else {
+      const actionButtons = buttonManager.createActionButtons();
+      headerActions.appendChild(actionButtons.copy);
+      headerActions.appendChild(actionButtons.close);
+    }
+  }
   
-  // Set initial position
-  positionPopup();
+  // Add Rauno mode selector if in Rauno mode
+  if (useRauno) {
+    const modesContainer = popupWindow.querySelector('.bobby-modes-rauno-container');
+    if (modesContainer) {
+      const modes = [
+        { id: 'explain', label: 'Explain', onClick: (mode) => analyzeText(mode) },
+        { id: 'summarize', label: 'Summarize', onClick: (mode) => analyzeText(mode) },
+        { id: 'keyPoints', label: 'Key Points', onClick: (mode) => analyzeText(mode) },
+        { id: 'simplify', label: 'Simplify', onClick: (mode) => analyzeText(mode) },
+        { id: 'factcheck', label: 'Fact Check', onClick: (mode) => analyzeText(mode) }
+      ];
+      const modeSelector = buttonManager.createRaunoModeSelector(modes, 'explain');
+      modesContainer.appendChild(modeSelector);
+    }
+  }
   
-  // Setup drag manager
+  // Setup drag manager first
   dragManager = new window.DragManager(popupWindow, {
     handle: '.bobby-drag-handle',
+    snapToEdge: true,
+    momentum: true,
     onDragEnd: () => dragManager.savePosition()
   });
   
-  // Restore saved position if available
-  dragManager.restorePosition();
+  // Calculate and set initial position
+  const initialPosition = calculateInitialPosition();
+  dragManager.moveTo(initialPosition.x, initialPosition.y, false);
   
   // Setup event handlers
   setupPopupEvents();
@@ -371,9 +471,13 @@ async function showPopup() {
   // Animate in with spring physics if enabled
   requestAnimationFrame(() => {
     const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
-    const showClass = useV2 ? 'bobby-show' : 'bobby-popup-show';
+    const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
+    const showClass = useRauno ? 'bobby-show-rauno' : (useV2 ? 'bobby-show' : 'bobby-popup-show');
     
-    if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS) {
+    if (useRauno && window.raunoEffects) {
+      // Choreographed reveal sequence
+      window.raunoEffects.revealPopup(popupWindow);
+    } else if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS) {
       popupWindow.classList.add(showClass);
       // Add slide-in effect
       if (interactionEffects) {
@@ -460,55 +564,55 @@ function createPromptButtons() {
 }
 
 // Position popup window with smart positioning
-function positionPopup() {
+function calculateInitialPosition() {
   const selection = window.getSelection();
-  if (selection.rangeCount === 0) return;
+  const popupWidth = 380; // More compact width
+  const popupHeight = 400;
+  const MARGIN = 20;
+  
+  // Default to center if no selection
+  if (!selection || selection.rangeCount === 0) {
+    return {
+      x: (window.innerWidth - popupWidth) / 2,
+      y: (window.innerHeight - popupHeight) / 2
+    };
+  }
   
   const rect = selection.getRangeAt(0).getBoundingClientRect();
-  const MARGIN = 40; // Comfortable margin from edges
-  const popupWidth = 480;
-  const popupHeight = 400;
   
-  // Get viewport dimensions
-  const viewport = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    scrollX: window.scrollX,
-    scrollY: window.scrollY
-  };
-  
-  // Calculate initial position (centered on selection)
+  // Calculate initial position (adjacent to selection)
   let position = {
-    x: rect.left + (rect.width / 2) - (popupWidth / 2),
-    y: rect.bottom + 20
+    x: rect.right + 10, // Position to the right of selection
+    y: rect.top - 10    // Align with top of selection
   };
   
-  // Constrain horizontally with margins
-  position.x = Math.max(MARGIN, Math.min(position.x, viewport.width - popupWidth - MARGIN));
+  // If popup would go off right edge, position to left of selection
+  if (position.x + popupWidth > window.innerWidth - MARGIN) {
+    position.x = rect.left - popupWidth - 10;
+  }
+  
+  // If still off screen, center horizontally
+  if (position.x < MARGIN) {
+    position.x = Math.max(MARGIN, (window.innerWidth - popupWidth) / 2);
+  }
   
   // Check if popup would go below viewport
-  if (position.y + popupHeight > viewport.height - MARGIN) {
+  if (position.y + popupHeight > window.innerHeight - MARGIN) {
     // Try positioning above the selection
     position.y = rect.top - popupHeight - 20;
     
     // If still doesn't fit, center in viewport
     if (position.y < MARGIN) {
-      position.x = (viewport.width - popupWidth) / 2;
-      position.y = (viewport.height - popupHeight) / 2;
+      position.x = (window.innerWidth - popupWidth) / 2;
+      position.y = (window.innerHeight - popupHeight) / 2;
     }
   }
   
-  // Ensure minimum margin from top
-  position.y = Math.max(MARGIN, position.y);
+  // Ensure minimum margin from edges
+  position.x = Math.max(MARGIN, Math.min(position.x, window.innerWidth - popupWidth - MARGIN));
+  position.y = Math.max(MARGIN, Math.min(position.y, window.innerHeight - popupHeight - MARGIN));
   
-  // Apply position
-  popupWindow.style.left = `${position.x}px`;
-  popupWindow.style.top = `${position.y}px`;
-  popupWindow.style.width = `${popupWidth}px`;
-  
-  // Store initial position for drag manager
-  popupWindow.dataset.initialX = position.x;
-  popupWindow.dataset.initialY = position.y;
+  return position;
 }
 
 // Setup popup event handlers
@@ -550,15 +654,19 @@ function setupPopupEvents() {
       }
       
       // Disable all buttons during processing
-      const allActionButtons = popupWindow.querySelectorAll(`
-        .bobby-primary-actions ${buttonSelector},
-        .bobby-secondary-actions ${buttonSelector},
-        .bobby-prompt-bar > ${buttonSelector}
-      `);
-      allActionButtons.forEach(b => {
-        b.classList.remove('active');
-        b.disabled = true;
-      });
+      let allActionButtons = [];
+      if (popupWindow) {
+        allActionButtons = popupWindow.querySelectorAll(`
+          .bobby-primary-actions ${buttonSelector},
+          .bobby-secondary-actions ${buttonSelector},
+          .bobby-prompt-bar > ${buttonSelector},
+          .bobby-modes-rauno .bobby-btn-rauno
+        `);
+        allActionButtons.forEach(b => {
+          b.classList.remove('active');
+          b.disabled = true;
+        });
+      }
       
       // Mark clicked button as active and loading
       const clickedButton = e.currentTarget;
@@ -568,13 +676,17 @@ function setupPopupEvents() {
       if (isSpecial && prompt === 'factcheck') {
         showFactCheckView().finally(() => {
           // Re-enable buttons after processing
-          allActionButtons.forEach(b => b.disabled = false);
+          if (allActionButtons && allActionButtons.length > 0) {
+            allActionButtons.forEach(b => b.disabled = false);
+          }
           clickedButton.classList.remove('loading');
         });
       } else {
         analyzeText(mode, prompt).finally(() => {
           // Re-enable buttons after processing
-          allActionButtons.forEach(b => b.disabled = false);
+          if (allActionButtons && allActionButtons.length > 0) {
+            allActionButtons.forEach(b => b.disabled = false);
+          }
           clickedButton.classList.remove('loading');
         });
       }
@@ -634,9 +746,35 @@ function switchMode(mode, prompt = null) {
 // Analyze text with selected mode
 async function analyzeText(mode, prompt = null) {
   const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
-  const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
+  
+  // Find the appropriate result container
+  let resultDiv;
+  if (useRauno) {
+    resultDiv = popupWindow.querySelector('.bobby-content-rauno');
+  } else {
+    resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  }
+  
+  if (!resultDiv) {
+    console.error('Bobby: Result container not found');
+    return;
+  }
+  
   const ui = new window.UIComponents();
-  resultDiv.innerHTML = ui.createLoader('Analyzing text...');
+  
+  // Show loading state
+  if (useRauno) {
+    resultDiv.innerHTML = `
+      <div class="bobby-analysis-rauno">
+        <div class="bobby-skeleton-rauno"></div>
+        <div class="bobby-skeleton-rauno" style="width: 80%;"></div>
+        <div class="bobby-skeleton-rauno" style="width: 60%;"></div>
+      </div>
+    `;
+  } else {
+    resultDiv.innerHTML = ui.createLoader('Analyzing text...');
+  }
   
   try {
     // Send message to background script with error handling
@@ -684,6 +822,15 @@ async function analyzeText(mode, prompt = null) {
     if (response && response.success) {
       currentResponse = response.result;
       displayResult(response.result, response.fromCache);
+      
+      // Store in conversation thread
+      conversationThread.conversations.push({
+        question: null,  // First analysis has no question
+        answer: response.result,
+        mode: mode,
+        timestamp: Date.now()
+      });
+      conversationThread.lastActivity = Date.now();
       
       // Save to history (non-blocking)
       try {
@@ -763,19 +910,22 @@ async function showFactCheckView() {
       return;
     }
     
-    // Update UI to show progress
+    // Update UI to show streamlined progress
     resultDiv.innerHTML = `
-      <div class="bobby-fact-check-header">
-        <span class="bobby-exa-badge">🔍</span>
-        <h4>Fact Checking with Exa</h4>
-      </div>
-      <div class="bobby-fact-check-progress">
-        <div class="bobby-progress-header">
-          <h5 class="bobby-progress-title">Verifying Claims</h5>
-          <span class="bobby-progress-count">${claims.length} ${claims.length === 1 ? 'claim' : 'claims'} found</span>
+      <div class="bobby-fact-check-modern">
+        <div class="bobby-fc-header">
+          <span class="bobby-fc-icon">🔍</span>
+          <span class="bobby-fc-title">Fact Checking</span>
         </div>
-        ${ui.createProgressBar(0, '')}
-        <p class="bobby-progress-status">Analyzing claim 1 of ${claims.length}...</p>
+        <div class="bobby-fc-progress">
+          <div class="bobby-fc-status">
+            <span class="bobby-fc-dots">●●●</span>
+            <span class="bobby-fc-counter">Checking 1/${claims.length}</span>
+          </div>
+          <div class="bobby-fc-bar">
+            <div class="bobby-fc-bar-fill" style="width: 0%"></div>
+          </div>
+        </div>
       </div>
     `;
     
@@ -785,14 +935,14 @@ async function showFactCheckView() {
       const claim = claims[i];
       const progress = Math.round(((i + 1) / claims.length) * 100);
       
-      // Update progress
-      const progressBar = resultDiv.querySelector('.bobby-progress-fill');
-      const progressStatus = resultDiv.querySelector('.bobby-progress-status');
+      // Update streamlined progress
+      const progressBar = resultDiv.querySelector('.bobby-fc-bar-fill');
+      const progressCounter = resultDiv.querySelector('.bobby-fc-counter');
       if (progressBar) {
         progressBar.style.width = `${progress}%`;
       }
-      if (progressStatus) {
-        progressStatus.textContent = `Analyzing claim ${i + 1} of ${claims.length}...`;
+      if (progressCounter) {
+        progressCounter.textContent = `Checking ${i + 1}/${claims.length}`;
       }
       
       // Always await the verification (it now handles errors internally)
@@ -871,25 +1021,36 @@ function displayFactCheckResults(results) {
   const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
   const ui = new window.UIComponents();
   
-  // Calculate score status based on reliability
-  const scoreStatus = results.overallScore >= 80 ? 'high' : 
-                      results.overallScore >= 60 ? 'medium' : 
-                      results.overallScore >= 40 ? 'low' : 'critical';
+  // Calculate score status and label based on reliability
+  const scoreStatus = results.overallScore >= 80 ? 'excellent' : 
+                      results.overallScore >= 60 ? 'good' : 
+                      results.overallScore >= 40 ? 'fair' : 'poor';
+  
+  const scoreLabel = results.overallScore >= 80 ? 'Excellent' : 
+                     results.overallScore >= 60 ? 'Good' : 
+                     results.overallScore >= 40 ? 'Fair' : 'Poor';
   
   const summaryHtml = `
-    <div class="bobby-fact-check-hero">
-      <div class="bobby-reliability-score-hero">
-        <div class="bobby-score-ring bobby-score-${scoreStatus}">
-          <span class="bobby-score-value">${results.overallScore}%</span>
+    <div class="bobby-fc-results">
+      <div class="bobby-fc-reliability">
+        <div class="bobby-fc-ring bobby-fc-ring-${scoreStatus}" data-score="${results.overallScore}">
+          <svg class="bobby-fc-ring-svg" viewBox="0 0 120 120">
+            <circle class="bobby-fc-ring-bg" cx="60" cy="60" r="54"/>
+            <circle class="bobby-fc-ring-progress" cx="60" cy="60" r="54" 
+                    style="stroke-dasharray: ${339.3 * (results.overallScore / 100)} 339.3"/>
+          </svg>
+          <div class="bobby-fc-ring-content">
+            <span class="bobby-fc-score">${results.overallScore}%</span>
+            <span class="bobby-fc-label">${scoreLabel}</span>
+          </div>
         </div>
-        <h3 class="bobby-reliability-title">Overall Reliability</h3>
       </div>
-      <div class="bobby-claim-breakdown">
+      <div class="bobby-fc-stats">
         ${results.summary.true > 0 ? `
-        <div class="bobby-breakdown-item bobby-breakdown-true">
-          <span class="bobby-breakdown-icon">✓</span>
-          <span class="bobby-breakdown-count">${results.summary.true}</span>
-          <span class="bobby-breakdown-label">Verified</span>
+        <div class="bobby-fc-stat bobby-fc-stat-true">
+          <span class="bobby-fc-stat-icon">✓</span>
+          <span class="bobby-fc-stat-count">${results.summary.true}</span>
+          <span class="bobby-fc-stat-label">TRUE</span>
         </div>` : ''}
         ${results.summary.false > 0 ? `
         <div class="bobby-breakdown-item bobby-breakdown-false">
@@ -898,10 +1059,10 @@ function displayFactCheckResults(results) {
           <span class="bobby-breakdown-label">False</span>
         </div>` : ''}
         ${results.summary.partially_true > 0 ? `
-        <div class="bobby-breakdown-item bobby-breakdown-partial">
-          <span class="bobby-breakdown-icon">≈</span>
-          <span class="bobby-breakdown-count">${results.summary.partially_true}</span>
-          <span class="bobby-breakdown-label">Partial</span>
+        <div class="bobby-fc-stat bobby-fc-stat-partial">
+          <span class="bobby-fc-stat-icon">≈</span>
+          <span class="bobby-fc-stat-count">${results.summary.partially_true}</span>
+          <span class="bobby-fc-stat-label">PARTIAL</span>
         </div>` : ''}
         ${results.summary.unverifiable > 0 ? `
         <div class="bobby-breakdown-item bobby-breakdown-unverifiable">
@@ -940,17 +1101,16 @@ function displayFactCheckResults(results) {
     }
     
     return `
-      <div class="bobby-claim-card-v3 bobby-claim-${v.assessment}">
-        <div class="bobby-claim-header-v3">
-          <div class="bobby-claim-status-v3">
-            <span class="bobby-status-icon-v3">${statusIcon}</span>
-            <span class="bobby-status-label-v3">${statusLabel}</span>
+      <div class="bobby-fc-claim bobby-fc-claim-${v.assessment}">
+        <div class="bobby-fc-claim-strip"></div>
+        <div class="bobby-fc-claim-content">
+          <div class="bobby-fc-claim-header">
+            <span class="bobby-fc-claim-icon">${statusIcon}</span>
+            <span class="bobby-fc-claim-status">${statusLabel.toUpperCase()}</span>
+            <span class="bobby-fc-claim-confidence">${v.confidence}%</span>
           </div>
-          <span class="bobby-confidence-v3">${v.confidence}% confidence</span>
-        </div>
-        <div class="bobby-claim-content-v3">
-          <p class="bobby-claim-text-v3">${escapeHtml(v.claim)}</p>
-          <p class="bobby-verification-text-v3">${escapeHtml(cleanSummary || '')}</p>
+          <p class="bobby-fc-claim-text">${escapeHtml(v.claim)}</p>
+          <p class="bobby-fc-claim-summary">${escapeHtml(cleanSummary || '')}</p>
         </div>
         ${v.sources && v.sources.length > 0 ?
           `<div class="bobby-sources-v3">
@@ -1006,17 +1166,17 @@ function displayFactCheckResults(results) {
   });
 }
 
-// Get status icon for assessment
+// Get status icon for assessment - using simpler icons
 function getStatusIcon(assessment) {
   const icons = {
-    'true': '✅',
-    'false': '❌',
-    'partially_true': '⚠️',
-    'unverifiable': '❓',
-    'needs_context': '📋',
+    'true': '✓',
+    'false': '✗',
+    'partially_true': '≈',
+    'unverifiable': '?',
+    'needs_context': '!',
     'error': '⚡'
   };
-  return icons[assessment] || '❓';
+  return icons[assessment] || '?';
 }
 
 // Get status label for assessment
@@ -1034,7 +1194,10 @@ function getStatusLabel(assessment) {
 
 // Show follow-up input
 function showFollowUpInput() {
-  const footer = popupWindow.querySelector('.bobby-footer');
+  if (!popupWindow) {
+    console.error('Bobby: Cannot show follow-up input - popup window not found');
+    return;
+  }
   
   // Check if follow-up input already exists
   const existingInput = popupWindow.querySelector('.bobby-followup-input-container');
@@ -1043,59 +1206,113 @@ function showFollowUpInput() {
     return;
   }
   
-  // Create follow-up input container
+  // Find the follow-up button that was clicked
+  const followupBtn = popupWindow.querySelector('.bobby-followup-inline-btn');
+  if (!followupBtn) {
+    console.error('Bobby: Follow-up button not found');
+    return;
+  }
+  
+  // Create follow-up input container with integrated design
   const followUpContainer = document.createElement('div');
-  followUpContainer.className = 'bobby-followup-input-container';
+  followUpContainer.className = 'bobby-followup-input-container bobby-followup-integrated';
   followUpContainer.innerHTML = `
-    <div class="bobby-followup-header">
-      <span>💬 Ask a follow-up question</span>
-      <button class="bobby-followup-close" type="button" aria-label="Close follow-up">✕</button>
-    </div>
     <form class="bobby-followup-form">
-      <div class="bobby-followup-input-wrapper">
-        <textarea class="bobby-followup-input" 
-          placeholder="What would you like to know more about?" 
-          rows="2"
+      <div class="bobby-followup-input-group">
+        <input type="text" 
+          class="bobby-followup-input-field" 
+          placeholder="Ask a follow-up question..." 
           spellcheck="false"
           autocomplete="off"
-          aria-label="Follow-up question"></textarea>
-        <button class="bobby-followup-submit" type="submit" title="Ask Question (Ctrl+Enter)" aria-label="Submit question">
-          <span>→</span>
-        </button>
+          aria-label="Follow-up question">
+        <div class="bobby-followup-actions">
+          <button class="bobby-followup-submit-btn" type="submit" title="Send (Enter)" aria-label="Send">
+            <span class="bobby-followup-submit-icon">↑</span>
+          </button>
+          <button class="bobby-followup-cancel-btn" type="button" title="Cancel (Esc)" aria-label="Cancel">
+            <span class="bobby-followup-cancel-icon">×</span>
+          </button>
+        </div>
       </div>
     </form>
   `;
   
-  // Insert above footer
-  footer.parentNode.insertBefore(followUpContainer, footer);
+  // Replace the follow-up button with the input
+  const followupSection = followupBtn.parentElement;
+  followupSection.innerHTML = '';
+  followupSection.appendChild(followUpContainer);
   
-  // Focus on textarea
-  const textarea = followUpContainer.querySelector('.bobby-followup-input');
-  textarea.focus();
+  // Focus on input field with slight delay for animation
+  setTimeout(() => {
+    const inputField = followUpContainer.querySelector('.bobby-followup-input-field');
+    if (inputField) {
+      inputField.focus();
+    }
+  }, 50);
   
-  // Handle close
-  followUpContainer.querySelector('.bobby-followup-close').addEventListener('click', () => {
-    followUpContainer.remove();
-  });
+  // Handle cancel
+  const cancelBtn = followUpContainer.querySelector('.bobby-followup-cancel-btn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      // Restore the follow-up button
+      const followupSection = followUpContainer.parentElement;
+      followupSection.innerHTML = `
+        <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
+          <span class="bobby-followup-icon">→</span>
+          <span class="bobby-followup-text">Ask follow-up</span>
+        </button>
+      `;
+      
+      // Re-attach event listener
+      const newFollowupBtn = followupSection.querySelector('.bobby-followup-inline-btn');
+      if (newFollowupBtn) {
+        newFollowupBtn.addEventListener('click', () => {
+          showFollowUpInput();
+        });
+      }
+    });
+  }
   
   // Handle form submit
   const form = followUpContainer.querySelector('.bobby-followup-form');
-  const submitQuestion = (e) => {
+  const inputField = followUpContainer.querySelector('.bobby-followup-input-field');
+  
+  const submitQuestion = async (e) => {
     if (e) e.preventDefault();
-    const question = textarea.value.trim();
+    const question = inputField.value.trim();
     if (question) {
-      handleFollowUp(question);
-      followUpContainer.remove();
+      try {
+        await handleFollowUp(question);
+        // After successful submission, restore the follow-up button
+        const followupSection = followUpContainer.parentElement;
+        followupSection.innerHTML = `
+          <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
+            <span class="bobby-followup-icon">→</span>
+            <span class="bobby-followup-text">Ask follow-up</span>
+          </button>
+        `;
+        
+        // Re-attach event listener
+        const newFollowupBtn = followupSection.querySelector('.bobby-followup-inline-btn');
+        if (newFollowupBtn) {
+          newFollowupBtn.addEventListener('click', () => {
+            showFollowUpInput();
+          });
+        }
+      } catch (error) {
+        console.error('Bobby: Error handling follow-up:', error);
+        displayError('Failed to process follow-up question. Please try again.');
+      }
     }
   };
   
   form.addEventListener('submit', submitQuestion);
   
-  // Submit on Enter (Ctrl/Cmd + Enter)
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+  // Keyboard shortcuts
+  inputField.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
       e.preventDefault();
-      submitQuestion();
+      cancelBtn.click();
     }
   });
 }
@@ -1108,14 +1325,47 @@ async function handleFollowUp(question) {
   
   resultDiv.innerHTML = ui.createLoader('Finding answer...');
   
+  // Ensure conversationThread is initialized
+  if (!conversationThread || !conversationThread.originalText) {
+    // Try to recover from the last analysis if possible
+    conversationThread = {
+      originalText: selectedText || 'Previous text',
+      originalUrl: window.location.href,
+      conversations: [],
+      startTime: Date.now(),
+      lastActivity: Date.now()
+    };
+  }
+  
   try {
-    // Use Exa Answer API with error handling
+    // Build full conversation context
+    const contextPrompt = `You are continuing a conversation about the following text:
+
+Original Text: "${conversationThread.originalText}"
+Source: ${conversationThread.originalUrl}
+
+Previous Conversation:
+${conversationThread.conversations.map((c, i) => {
+  if (c.question) {
+    return `\nQ${i}: ${c.question}\nA${i}: ${c.answer}`;
+  } else {
+    return `\nInitial Analysis (${c.mode}): ${c.answer}`;
+  }
+}).join('\n')}
+
+Current Question: ${question}
+
+Please provide a contextual response that builds upon the previous conversation while directly addressing the current question.`;
+    
+    // Send with full context using regular analyzeText with custom prompt
     let response;
     try {
       response = await chrome.runtime.sendMessage({
-        action: 'exaAnswer',
-        question: question,
-        context: currentResponse
+        action: 'analyzeText',
+        text: conversationThread.originalText,
+        mode: 'explain',
+        systemPrompt: 'You are Bobby, a helpful AI assistant continuing a conversation. Use the full context provided to give coherent, contextual responses that build upon previous exchanges.',
+        userPrompt: contextPrompt
       });
     } catch (sendError) {
       // Handle cases where extension context is invalidated
@@ -1127,15 +1377,29 @@ async function handleFollowUp(question) {
     }
     
     if (response && response.success) {
-      displayFollowUpAnswer(question, response.answer);
+      // Store in conversation thread
+      conversationThread.conversations.push({
+        question: question,
+        answer: response.result || response.answer?.content || response.answer,
+        mode: 'followup',
+        timestamp: Date.now()
+      });
+      conversationThread.lastActivity = Date.now();
+      
+      // Display the answer with conversation context
+      displayFollowUpAnswer(question, response.result || response.answer);
       
       // Save to history as follow-up
       if (window.currentHistoryId) {
-        await window.HistoryManager.addFollowUp(
-          window.currentHistoryId,
-          question,
-          response.answer.content
-        );
+        try {
+          await window.HistoryManager.addFollowUp(
+            window.currentHistoryId,
+            question,
+            response.result || response.answer?.content || response.answer
+          );
+        } catch (historyError) {
+          console.warn('Bobby: Could not save follow-up to history:', historyError);
+        }
       }
     } else {
       displayError(response?.error || 'Unknown error occurred');
@@ -1151,11 +1415,12 @@ function displayFollowUpAnswer(question, answer) {
   const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
   const ui = new window.UIComponents();
   
-  // First convert markdown to HTML
-  let formattedAnswer = ui.markdownToHtml(answer.content);
+  // Handle answer as either string or object with content property
+  let answerContent = typeof answer === 'string' ? answer : (answer?.content || answer);
+  let formattedAnswer = ui.markdownToHtml(answerContent || 'No answer provided');
   
-  // Then replace citation markers [1], [2], etc. with inline hyperlinks
-  if (answer.sources && answer.sources.length > 0) {
+  // Then replace citation markers [1], [2], etc. with inline hyperlinks if sources exist
+  if (answer && typeof answer === 'object' && answer.sources && answer.sources.length > 0) {
     answer.sources.forEach(source => {
       const citationPattern = new RegExp(`\\[${source.number}\\]`, 'g');
       const citationLink = `[<a href="${source.url}" target="_blank" rel="noopener" class="bobby-inline-citation">${source.number}</a>]`;
@@ -1167,38 +1432,118 @@ function displayFollowUpAnswer(question, answer) {
   const analysisClass = useV2 ? 'bobby-analysis-v2' : 'bobby-analysis';
   const markdownClass = useV2 ? 'bobby-markdown-v2' : 'bobby-markdown';
   
+  // Show conversation thread indicator if multiple exchanges
+  const threadCount = conversationThread?.conversations?.length || 0;
+  const threadIndicator = threadCount > 1 ? `
+    <div class="bobby-thread-indicator">
+      <span class="bobby-thread-count">💬 Conversation (${threadCount} messages)</span>
+    </div>
+  ` : '';
+  
   resultDiv.innerHTML = `
     <div class="${analysisClass}">
+      ${threadIndicator}
       <div class="bobby-followup-question">
-        <strong>Q:</strong> ${escapeHtml(question)}
+        <strong>Q${threadCount + 1}:</strong> ${escapeHtml(question)}
       </div>
-      <div class="${markdownClass}">${formattedAnswer}</div>
+      <div class="${markdownClass}">
+        <strong>A${threadCount + 1}:</strong> ${formattedAnswer}
+      </div>
+    </div>
+    <div class="bobby-followup-section">
+      <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
+        <span class="bobby-followup-icon">→</span>
+        <span class="bobby-followup-text">Ask follow-up</span>
+      </button>
     </div>
   `;
+  
+  // Add event listener for the new follow-up button
+  const followupBtn = resultDiv.querySelector('.bobby-followup-inline-btn');
+  if (followupBtn) {
+    followupBtn.addEventListener('click', () => {
+      showFollowUpInput();
+    });
+  }
 }
 
 
 // Display analysis result
 function displayResult(result, fromCache = false) {
   const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
-  const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
+  
+  let resultDiv;
+  if (useRauno) {
+    resultDiv = popupWindow.querySelector('.bobby-content-rauno');
+  } else {
+    resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  }
+  
+  if (!resultDiv) {
+    console.error('Bobby: Result container not found for display');
+    return;
+  }
+  
   const ui = new window.UIComponents();
   
-  const analysisClass = useV2 ? 'bobby-analysis-v2' : 'bobby-analysis';
-  const markdownClass = useV2 ? 'bobby-markdown-v2' : 'bobby-markdown';
+  if (useRauno) {
+    resultDiv.innerHTML = `
+      <div class="bobby-analysis-rauno">
+        ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
+        <div class="bobby-markdown-rauno">${ui.markdownToHtml(result)}</div>
+      </div>
+      <div class="bobby-followup-section">
+        <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
+          <span class="bobby-followup-icon">→</span>
+          <span class="bobby-followup-text">Ask follow-up</span>
+        </button>
+      </div>
+    `;
+  } else {
+    const analysisClass = useV2 ? 'bobby-analysis-v2' : 'bobby-analysis';
+    const markdownClass = useV2 ? 'bobby-markdown-v2' : 'bobby-markdown';
+    
+    resultDiv.innerHTML = `
+      <div class="${analysisClass}">
+        ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
+        <div class="${markdownClass}">${ui.markdownToHtml(result)}</div>
+      </div>
+      <div class="bobby-followup-section">
+        <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
+          <span class="bobby-followup-icon">→</span>
+          <span class="bobby-followup-text">Ask follow-up</span>
+        </button>
+      </div>
+    `;
+  }
   
-  resultDiv.innerHTML = `
-    <div class="${analysisClass}">
-      ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
-      <div class="${markdownClass}">${ui.markdownToHtml(result)}</div>
-    </div>
-  `;
+  // Add event listener for the new follow-up button
+  const followupBtn = resultDiv.querySelector('.bobby-followup-inline-btn');
+  if (followupBtn) {
+    followupBtn.addEventListener('click', () => {
+      showFollowUpInput();
+    });
+  }
 }
 
 // Display error message
 function displayError(error) {
   const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
-  const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
+  
+  let resultDiv;
+  if (useRauno) {
+    resultDiv = popupWindow.querySelector('.bobby-content-rauno');
+  } else {
+    resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  }
+  
+  if (!resultDiv) {
+    console.error('Bobby: Result container not found for error display');
+    return;
+  }
+  
   const ui = new window.UIComponents();
   
   // Add reload hint for certain errors
@@ -1207,7 +1552,17 @@ function displayError(error) {
     details += ' If you recently updated config.js, reload the extension in chrome://extensions/';
   }
   
-  resultDiv.innerHTML = ui.createError(error, details);
+  if (useRauno) {
+    resultDiv.innerHTML = `
+      <div class="bobby-error-rauno">
+        <h4>Error</h4>
+        <p>${error}</p>
+        <p class="bobby-error-details">${details}</p>
+      </div>
+    `;
+  } else {
+    resultDiv.innerHTML = ui.createError(error, details);
+  }
 }
 
 // Close popup
@@ -1242,25 +1597,48 @@ function closePopup() {
 let isResizing = false;
 function startResizing(e) {
   isResizing = true;
+  popupWindow.classList.add('bobby-resizing');
+  
   const startX = e.clientX;
+  const startY = e.clientY;
   const startWidth = popupWindow.offsetWidth;
   const startHeight = popupWindow.offsetHeight;
   
   function handleMouseMove(e) {
     if (!isResizing) return;
     
-    const newWidth = Math.max(300, Math.min(800, startWidth + (e.clientX - startX)));
+    // Calculate new dimensions with constraints
+    const newWidth = Math.max(320, Math.min(600, startWidth + (e.clientX - startX)));
+    const newHeight = Math.max(300, Math.min(800, startHeight + (e.clientY - startY)));
+    
+    // Apply new dimensions
     popupWindow.style.width = `${newWidth}px`;
+    popupWindow.style.height = `${newHeight}px`;
+    
+    // Adjust content area height if needed
+    const resultDiv = popupWindow.querySelector('.bobby-result-v2, .bobby-result');
+    if (resultDiv) {
+      resultDiv.style.maxHeight = `${newHeight - 200}px`; // Account for header/footer
+    }
   }
   
   function handleMouseUp() {
     isResizing = false;
+    popupWindow.classList.remove('bobby-resizing');
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+    
+    // Save preferred size
+    const size = {
+      width: popupWindow.offsetWidth,
+      height: popupWindow.offsetHeight
+    };
+    chrome.storage.local.set({ bobbyPopupSize: size });
   }
   
   document.addEventListener('mousemove', handleMouseMove);
   document.addEventListener('mouseup', handleMouseUp);
+  e.preventDefault();
 }
 
 // Handle messages from background script

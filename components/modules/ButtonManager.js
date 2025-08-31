@@ -7,8 +7,10 @@ class ButtonManager {
     this.tooltipTimeout = null;
     this.useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM || false;
     this.useContextAware = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_CONTEXT_AWARE || false;
+    this.useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE || false;
     this.interactionEffects = null;
     this.particleEffects = null;
+    this.raunoEffects = null;
     
     // Initialize effects if enabled
     if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS && window.InteractionEffects) {
@@ -16,6 +18,9 @@ class ButtonManager {
     }
     if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_PARTICLE_EFFECTS && window.ParticleEffects) {
       this.particleEffects = new window.ParticleEffects();
+    }
+    if (this.useRauno && window.RaunoEffects) {
+      this.raunoEffects = new window.RaunoEffects();
     }
   }
 
@@ -34,14 +39,34 @@ class ButtonManager {
 
     const button = document.createElement('button');
     button.id = id || `bobby-btn-${Date.now()}`;
-    button.className = `bobby-icon-btn ${className}`;
+    
+    // Apply Rauno design if enabled
+    if (this.useRauno) {
+      button.className = `bobby-btn-rauno bobby-btn-icon ${className}`;
+      // Add stagger animation data attribute
+      button.setAttribute('data-stagger', 'true');
+    } else {
+      button.className = `bobby-icon-btn ${className}`;
+    }
+    
     button.innerHTML = icon;
     button.title = tooltip || '';
     button.setAttribute('aria-label', ariaLabel || tooltip || 'Button');
     
-    // Add click handler
+    // Add click handler with Rauno effects
     if (onClick) {
-      button.addEventListener('click', onClick);
+      button.addEventListener('click', (e) => {
+        // Add particle burst on click if Rauno mode
+        if (this.useRauno && this.raunoEffects) {
+          const rect = button.getBoundingClientRect();
+          this.raunoEffects.createParticleBurst(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+            4
+          );
+        }
+        onClick(e);
+      });
     }
 
     // Store button reference
@@ -53,6 +78,11 @@ class ButtonManager {
     // Add enhanced tooltip if needed
     if (tooltip) {
       this.addEnhancedTooltip(button, tooltip);
+    }
+    
+    // Add magnetic hover effect if Rauno mode
+    if (this.useRauno && this.raunoEffects) {
+      this.raunoEffects.addMagneticHover(button);
     }
 
     return button;
@@ -752,6 +782,99 @@ class ButtonManager {
     });
     
     return menu;
+  }
+  
+  /**
+   * Create Rauno-style mode selector with Swiss minimalism
+   */
+  createRaunoModeSelector(modes, activeMode) {
+    const container = document.createElement('div');
+    container.className = 'bobby-modes-rauno';
+    
+    modes.forEach((mode, index) => {
+      const button = document.createElement('button');
+      button.className = mode.id === activeMode ? 'bobby-mode-btn-rauno active' : 'bobby-mode-btn-rauno';
+      button.dataset.mode = mode.id;
+      
+      // Use text for clearer Swiss design (icons are secondary)
+      button.innerHTML = `
+        <span class="bobby-mode-text">${mode.label}</span>
+      `;
+      
+      // Add click handler
+      button.addEventListener('click', () => {
+        // Update active states
+        container.querySelectorAll('.bobby-mode-btn-rauno').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        button.classList.add('active');
+        
+        // Trigger mode change
+        if (mode.onClick) {
+          mode.onClick(mode.id);
+        }
+        
+        // Add subtle pulse effect
+        if (this.raunoEffects) {
+          this.raunoEffects.pulse(button, 1.02);
+        }
+      });
+      
+      // Add to container
+      container.appendChild(button);
+    });
+    
+    return container;
+  }
+  
+  /**
+   * Create Swiss-inspired prompt buttons
+   */
+  createSwissPromptButtons() {
+    const prompts = [
+      { id: 'summarize', label: 'Summarize', icon: '📝' },
+      { id: 'keypoints', label: 'Key Points', icon: '🔑' },
+      { id: 'simplify', label: 'Simplify', icon: '👶' },
+      { id: 'translate', label: 'Translate', icon: '🌐' },
+      { id: 'explain', label: 'Explain', icon: '💡' }
+    ];
+    
+    return this.createRaunoModeSelector(prompts, 'explain');
+  }
+  
+  /**
+   * Create minimalist close button with proper sizing
+   */
+  createRaunoCloseButton() {
+    const button = this.createButton({
+      id: 'bobby-close-rauno',
+      icon: '×',
+      tooltip: 'Close (Esc)',
+      className: 'bobby-close-rauno',
+      onClick: () => {
+        // Choreographed close animation
+        if (this.raunoEffects) {
+          const popup = document.querySelector('.bobby-popup-rauno');
+          if (popup) {
+            this.raunoEffects.animate(popup, {
+              opacity: '0',
+              transform: 'scale(0.95) translateY(10px)'
+            }, 200).then(() => {
+              if (window.bobbyClose) window.bobbyClose();
+            });
+          }
+        } else {
+          if (window.bobbyClose) window.bobbyClose();
+        }
+      }
+    });
+    
+    // Apply specific Swiss styling
+    button.style.fontSize = '24px';
+    button.style.lineHeight = '1';
+    button.style.fontWeight = '300';
+    
+    return button;
   }
 }
 

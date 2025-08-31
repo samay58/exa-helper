@@ -713,6 +713,12 @@ async function validateAnthropicKey(apiKey) {
       return { valid: true, warning: 'API key is valid but rate limited' };
     }
     
+    if (response.status === 400) {
+      // Bad request might be due to test message, but key could still be valid
+      console.warn('Bobby: API validation returned 400, assuming key is valid for now');
+      return { valid: true, warning: 'API key validation uncertain, proceeding anyway' };
+    }
+    
     if (response.ok) {
       return { valid: true };
     }

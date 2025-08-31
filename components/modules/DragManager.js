@@ -1,439 +1,458 @@
-// Bobby Chrome Extension - Drag Manager Module
-// Enhanced dragging functionality with PDF context support
+// Bobby Chrome Extension - Enhanced Drag Manager Module
+// Modern dragging with pointer events and transform-only positioning
 
 class DragManager {
   constructor(element, options = {}) {
     this.element = element;
-    this.dragHandle = null;
     this.isDragging = false;
-    this.currentX = 0;
-    this.currentY = 0;
-    this.initialX = 0;
-    this.initialY = 0;
-    this.xOffset = 0;
-    this.yOffset = 0;
-
-    // Options
+    this.currentPointer = null;
+    
+    // Position state - single source of truth
+    this.position = {
+      x: 0,
+      y: 0
+    };
+    
+    // Drag start position
+    this.dragStart = {
+      x: 0,
+      y: 0,
+      elementX: 0,
+      elementY: 0
+    };
+    
+    // Velocity tracking for momentum
+    this.velocity = {
+      x: 0,
+      y: 0,
+      time: 0
+    };
+    
+    // Options with defaults
     this.options = {
       handle: '.bobby-drag-handle',
       containment: 'window',
       snapToEdge: true,
-      snapDistance: 20,
+      snapDistance: 30,
+      edgePadding: 20,
+      momentum: true,
+      momentumDamping: 0.92,
       onDragStart: null,
       onDrag: null,
       onDragEnd: null,
-      pdfMode: false,
       ...options
     };
-
-    // PDF detection
-    this.detectPDFContext();
-
+    
     // Initialize
     this.init();
   }
-
-  /**
-   * Initialize drag functionality
-   */
+  
   init() {
     // Find or create drag handle
-    this.dragHandle = this.element.querySelector(this.options.handle);
-    
-    if (!this.dragHandle) {
+    this.handle = this.element.querySelector(this.options.handle);
+    if (!this.handle) {
       this.createDragHandle();
     }
-
-    // Add event listeners
-    this.dragHandle.addEventListener('mousedown', this.dragStart.bind(this));
-    document.addEventListener('mousemove', this.drag.bind(this));
-    document.addEventListener('mouseup', this.dragEnd.bind(this));
-
-    // Touch support
-    this.dragHandle.addEventListener('touchstart', this.dragStart.bind(this), { passive: false });
-    document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
-    document.addEventListener('touchend', this.dragEnd.bind(this));
-
-    // Prevent text selection while dragging
-    this.dragHandle.style.userSelect = 'none';
-    this.dragHandle.style.webkitUserSelect = 'none';
-
-    // Add drag cursor
-    this.dragHandle.style.cursor = 'move';
-
-    // Ensure element uses absolute/fixed positioning
-    const position = window.getComputedStyle(this.element).position;
-    if (position !== 'absolute' && position !== 'fixed') {
-      this.element.style.position = 'fixed';
-    }
     
-    // Set initial position if not set
-    if (!this.element.style.left && !this.element.style.top) {
-      this.centerElement();
-    }
-  }
-
-  /**
-   * Create drag handle if not exists
-   */
-  createDragHandle() {
-    this.dragHandle = document.createElement('div');
-    this.dragHandle.className = 'bobby-drag-handle';
-    this.dragHandle.innerHTML = '⋮⋮';
-    this.dragHandle.setAttribute('aria-label', 'Drag to move');
-    this.element.prepend(this.dragHandle);
-  }
-
-  /**
-   * Detect if running in PDF context
-   */
-  detectPDFContext() {
-    const isPDF = 
-      window.location.href.includes('.pdf') ||
-      document.querySelector('embed[type="application/pdf"]') ||
-      document.querySelector('object[type="application/pdf"]') ||
-      document.querySelector('#viewer') || // PDF.js
-      window.location.href.startsWith('chrome-extension://') && window.location.href.includes('pdf'); // Chrome PDF viewer
-
-    if (isPDF) {
-      this.options.pdfMode = true;
-      this.adjustForPDF();
-    }
-  }
-
-  /**
-   * Adjust behavior for PDF context
-   */
-  adjustForPDF() {
-    // In PDF mode, we need to be more careful about z-index and positioning
-    this.element.style.zIndex = '2147483647'; // Maximum z-index
-    this.element.style.position = 'fixed'; // Use fixed positioning in PDFs
+    // Ensure element is positioned correctly
+    this.setupElementStyle();
     
-    // Add PDF-specific class
-    this.element.classList.add('bobby-pdf-mode');
+    // Get initial position from transform if exists
+    this.parseCurrentTransform();
+    
+    // Bind methods
+    this.handlePointerDown = this.handlePointerDown.bind(this);
+    this.handlePointerMove = this.handlePointerMove.bind(this);
+    this.handlePointerUp = this.handlePointerUp.bind(this);
+    this.handlePointerCancel = this.handlePointerCancel.bind(this);
+    
+    // Add event listeners - using pointer events for unified touch/mouse handling
+    this.handle.addEventListener('pointerdown', this.handlePointerDown);
+    
+    // Prevent text selection and context menu on handle
+    this.handle.style.userSelect = 'none';
+    this.handle.style.webkitUserSelect = 'none';
+    this.handle.style.touchAction = 'none';
+    this.handle.addEventListener('contextmenu', (e) => e.preventDefault());
   }
-
-  /**
-   * Start dragging
-   */
-  dragStart(e) {
-    if (e.type === 'touchstart') {
-      this.initialX = e.touches[0].clientX - this.xOffset;
-      this.initialY = e.touches[0].clientY - this.yOffset;
-    } else {
-      this.initialX = e.clientX - this.xOffset;
-      this.initialY = e.clientY - this.yOffset;
-    }
-
-    if (e.target === this.dragHandle) {
-      this.isDragging = true;
-      this.element.classList.add('bobby-dragging');
-      
-      // Bring to front
+  
+  setupElementStyle() {
+    // Ensure element uses fixed positioning with transform
+    this.element.style.position = 'fixed';
+    this.element.style.left = '0';
+    this.element.style.top = '0';
+    this.element.style.willChange = 'transform';
+    
+    // Add transition for smooth snapping
+    this.element.style.transition = 'none';
+    
+    // Ensure proper z-index
+    if (!this.element.style.zIndex) {
       this.element.style.zIndex = '2147483647';
-
-      // Call callback
-      if (this.options.onDragStart) {
-        this.options.onDragStart(e, this.element);
-      }
-
-      e.preventDefault();
     }
   }
-
-  /**
-   * Handle dragging
-   */
-  drag(e) {
-    if (!this.isDragging) return;
-
-    e.preventDefault();
-
-    if (e.type === 'touchmove') {
-      this.currentX = e.touches[0].clientX - this.initialX;
-      this.currentY = e.touches[0].clientY - this.initialY;
-    } else {
-      this.currentX = e.clientX - this.initialX;
-      this.currentY = e.clientY - this.initialY;
+  
+  createDragHandle() {
+    this.handle = document.createElement('div');
+    this.handle.className = 'bobby-drag-handle';
+    this.handle.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="5" cy="5" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="10" cy="5" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="15" cy="5" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="5" cy="10" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="10" cy="10" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="15" cy="10" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="5" cy="15" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="10" cy="15" r="1.5" fill="currentColor" opacity="0.4"/>
+        <circle cx="15" cy="15" r="1.5" fill="currentColor" opacity="0.4"/>
+      </svg>
+    `;
+    this.handle.setAttribute('aria-label', 'Drag to move');
+    this.handle.style.cursor = 'move';
+    this.element.prepend(this.handle);
+  }
+  
+  parseCurrentTransform() {
+    const transform = window.getComputedStyle(this.element).transform;
+    if (transform && transform !== 'none') {
+      // Parse matrix or matrix3d
+      const values = transform.match(/matrix(?:3d)?\(([^)]+)\)/);
+      if (values) {
+        const numbers = values[1].split(',').map(n => parseFloat(n.trim()));
+        // For 2D matrix: translateX is at index 4, translateY at index 5
+        // For 3D matrix: translateX is at index 12, translateY at index 13
+        if (transform.includes('matrix3d')) {
+          this.position.x = numbers[12] || 0;
+          this.position.y = numbers[13] || 0;
+        } else {
+          this.position.x = numbers[4] || 0;
+          this.position.y = numbers[5] || 0;
+        }
+      }
     }
-
+  }
+  
+  handlePointerDown(e) {
+    // Only handle primary button (usually left click or touch)
+    if (e.button !== 0) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    this.isDragging = true;
+    this.currentPointer = e.pointerId;
+    
+    // Capture pointer for this element
+    this.handle.setPointerCapture(e.pointerId);
+    
+    // Store drag start positions
+    this.dragStart.x = e.clientX;
+    this.dragStart.y = e.clientY;
+    this.dragStart.elementX = this.position.x;
+    this.dragStart.elementY = this.position.y;
+    this.dragStart.time = Date.now();
+    
+    // Reset velocity
+    this.velocity = { x: 0, y: 0, time: Date.now() };
+    
+    // Add class for styling
+    this.element.classList.add('bobby-dragging');
+    
+    // Disable transitions during drag
+    this.element.style.transition = 'none';
+    
+    // Add document-level listeners
+    document.addEventListener('pointermove', this.handlePointerMove);
+    document.addEventListener('pointerup', this.handlePointerUp);
+    document.addEventListener('pointercancel', this.handlePointerCancel);
+    
+    // Callback
+    if (this.options.onDragStart) {
+      this.options.onDragStart(e, this.element);
+    }
+  }
+  
+  handlePointerMove(e) {
+    if (!this.isDragging || e.pointerId !== this.currentPointer) return;
+    
+    e.preventDefault();
+    
+    // Calculate new position
+    const deltaX = e.clientX - this.dragStart.x;
+    const deltaY = e.clientY - this.dragStart.y;
+    
+    let newX = this.dragStart.elementX + deltaX;
+    let newY = this.dragStart.elementY + deltaY;
+    
     // Apply containment
     if (this.options.containment === 'window') {
       const bounds = this.getContainmentBounds();
-      this.currentX = Math.max(bounds.minX, Math.min(this.currentX, bounds.maxX));
-      this.currentY = Math.max(bounds.minY, Math.min(this.currentY, bounds.maxY));
+      newX = Math.max(bounds.minX, Math.min(newX, bounds.maxX));
+      newY = Math.max(bounds.minY, Math.min(newY, bounds.maxY));
     }
-
-    this.xOffset = this.currentX;
-    this.yOffset = this.currentY;
-
-    this.setTranslate(this.currentX, this.currentY);
-
-    // Call callback
+    
+    // Track velocity for momentum
+    if (this.options.momentum) {
+      const now = Date.now();
+      const dt = now - this.velocity.time;
+      if (dt > 0) {
+        this.velocity.x = (newX - this.position.x) / dt * 16; // Normalize to ~60fps
+        this.velocity.y = (newY - this.position.y) / dt * 16;
+        this.velocity.time = now;
+      }
+    }
+    
+    // Update position
+    this.setPosition(newX, newY);
+    
+    // Callback
     if (this.options.onDrag) {
-      this.options.onDrag(e, this.element, this.currentX, this.currentY);
+      this.options.onDrag(e, this.element, newX, newY);
     }
   }
-
-  /**
-   * End dragging
-   */
-  dragEnd(e) {
-    if (!this.isDragging) return;
-
+  
+  handlePointerUp(e) {
+    if (!this.isDragging || e.pointerId !== this.currentPointer) return;
+    
+    this.endDrag(e);
+  }
+  
+  handlePointerCancel(e) {
+    if (!this.isDragging || e.pointerId !== this.currentPointer) return;
+    
+    this.endDrag(e);
+  }
+  
+  endDrag(e) {
     this.isDragging = false;
-    this.element.classList.remove('bobby-dragging');
-
-    // Apply snap to edge if enabled
-    if (this.options.snapToEdge) {
-      this.snapToEdge();
+    this.currentPointer = null;
+    
+    // Release pointer capture
+    if (this.handle.hasPointerCapture(e.pointerId)) {
+      this.handle.releasePointerCapture(e.pointerId);
     }
-
-    // Call callback
+    
+    // Remove document listeners
+    document.removeEventListener('pointermove', this.handlePointerMove);
+    document.removeEventListener('pointerup', this.handlePointerUp);
+    document.removeEventListener('pointercancel', this.handlePointerCancel);
+    
+    // Remove dragging class
+    this.element.classList.remove('bobby-dragging');
+    
+    // Apply momentum if enabled
+    if (this.options.momentum && (Math.abs(this.velocity.x) > 0.5 || Math.abs(this.velocity.y) > 0.5)) {
+      this.applyMomentum();
+    } else if (this.options.snapToEdge) {
+      // Otherwise snap to edge if enabled
+      this.snapToNearestEdge();
+    }
+    
+    // Save position
+    this.savePosition();
+    
+    // Callback
     if (this.options.onDragEnd) {
-      this.options.onDragEnd(e, this.element, this.currentX, this.currentY);
+      this.options.onDragEnd(e, this.element, this.position.x, this.position.y);
     }
   }
-
-  /**
-   * Get containment bounds
-   */
+  
+  applyMomentum() {
+    const animate = () => {
+      // Apply damping
+      this.velocity.x *= this.options.momentumDamping;
+      this.velocity.y *= this.options.momentumDamping;
+      
+      // Stop if velocity is too small
+      if (Math.abs(this.velocity.x) < 0.5 && Math.abs(this.velocity.y) < 0.5) {
+        if (this.options.snapToEdge) {
+          this.snapToNearestEdge();
+        }
+        return;
+      }
+      
+      // Calculate new position
+      let newX = this.position.x + this.velocity.x;
+      let newY = this.position.y + this.velocity.y;
+      
+      // Apply containment and bounce
+      const bounds = this.getContainmentBounds();
+      if (newX < bounds.minX || newX > bounds.maxX) {
+        this.velocity.x *= -0.5; // Bounce with damping
+        newX = Math.max(bounds.minX, Math.min(newX, bounds.maxX));
+      }
+      if (newY < bounds.minY || newY > bounds.maxY) {
+        this.velocity.y *= -0.5; // Bounce with damping
+        newY = Math.max(bounds.minY, Math.min(newY, bounds.maxY));
+      }
+      
+      // Update position
+      this.setPosition(newX, newY);
+      
+      // Continue animation
+      requestAnimationFrame(animate);
+    };
+    
+    requestAnimationFrame(animate);
+  }
+  
   getContainmentBounds() {
     const rect = this.element.getBoundingClientRect();
-    const container = this.options.containment === 'parent' 
-      ? this.element.parentElement 
-      : window;
-
-    let containerWidth, containerHeight;
-    let containerLeft = 0, containerTop = 0;
-    
-    if (container === window) {
-      containerWidth = window.innerWidth;
-      containerHeight = window.innerHeight;
-    } else {
-      const containerRect = container.getBoundingClientRect();
-      containerWidth = containerRect.width;
-      containerHeight = containerRect.height;
-      containerLeft = containerRect.left;
-      containerTop = containerRect.top;
-    }
-
-    // Add padding to keep the entire element visible
-    const padding = 40; // Margin from edges
+    const padding = this.options.edgePadding;
     
     return {
-      minX: padding - containerLeft,
-      minY: padding - containerTop,
-      maxX: containerWidth - rect.width - padding - containerLeft,
-      maxY: containerHeight - rect.height - padding - containerTop
+      minX: padding,
+      minY: padding,
+      maxX: window.innerWidth - rect.width - padding,
+      maxY: window.innerHeight - rect.height - padding
     };
   }
-
-  /**
-   * Snap element to nearest edge
-   */
-  snapToEdge() {
+  
+  snapToNearestEdge() {
     const rect = this.element.getBoundingClientRect();
-    const snapDistance = this.options.snapDistance;
-    const padding = 10; // Small padding from edge
+    const threshold = this.options.snapDistance;
+    const padding = this.options.edgePadding;
     
-    let newX = this.currentX;
-    let newY = this.currentY;
-
-    // Get current position in viewport coordinates
-    const currentLeft = rect.left;
-    const currentRight = window.innerWidth - rect.right;
-    const currentTop = rect.top;
-    const currentBottom = window.innerHeight - rect.bottom;
-
-    // Check distance to edges
+    // Calculate distances to each edge
     const distances = {
-      left: currentLeft,
-      right: currentRight,
-      top: currentTop,
-      bottom: currentBottom
+      left: this.position.x,
+      right: window.innerWidth - (this.position.x + rect.width),
+      top: this.position.y,
+      bottom: window.innerHeight - (this.position.y + rect.height)
     };
-
-    // Find the closest edge
+    
+    // Find minimum distance
     const minDistance = Math.min(...Object.values(distances));
-
-    // Snap to the closest edge if within snap distance
-    if (minDistance < snapDistance) {
+    
+    // Snap if within threshold
+    if (minDistance < threshold) {
+      let targetX = this.position.x;
+      let targetY = this.position.y;
+      
       if (distances.left === minDistance) {
-        newX = padding - currentLeft + this.currentX;
+        targetX = padding;
       } else if (distances.right === minDistance) {
-        newX = this.currentX + currentRight - padding;
+        targetX = window.innerWidth - rect.width - padding;
       }
       
       if (distances.top === minDistance) {
-        newY = padding - currentTop + this.currentY;
+        targetY = padding;
       } else if (distances.bottom === minDistance) {
-        newY = this.currentY + currentBottom - padding;
+        targetY = window.innerHeight - rect.height - padding;
       }
-    }
-
-    // Apply snap with animation
-    if (newX !== this.currentX || newY !== this.currentY) {
-      this.currentX = newX;
-      this.currentY = newY;
-      this.xOffset = newX;
-      this.yOffset = newY;
-      this.animateToPosition(newX, newY);
+      
+      // Animate to target position
+      this.animateToPosition(targetX, targetY);
     }
   }
-
-  /**
-   * Set element transform
-   */
-  setTranslate(xPos, yPos) {
-    // Use both transform and position for better compatibility
-    this.element.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+  
+  animateToPosition(targetX, targetY, duration = 200) {
+    // Enable transition
+    this.element.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
     
-    // Also update position for edge detection
-    const rect = this.element.getBoundingClientRect();
-    this.element.dataset.dragX = xPos;
-    this.element.dataset.dragY = yPos;
+    // Set position
+    this.setPosition(targetX, targetY);
+    
+    // Disable transition after animation
+    setTimeout(() => {
+      this.element.style.transition = 'none';
+    }, duration);
   }
-
-  /**
-   * Animate to position
-   */
-  animateToPosition(x, y, duration = 200) {
-    const startX = this.currentX;
-    const startY = this.currentY;
-    const distanceX = x - startX;
-    const distanceY = y - startY;
-    const startTime = performance.now();
-
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
-      this.currentX = startX + (distanceX * easeProgress);
-      this.currentY = startY + (distanceY * easeProgress);
-      
-      this.xOffset = this.currentX;
-      this.yOffset = this.currentY;
-      
-      this.setTranslate(this.currentX, this.currentY);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
+  
+  setPosition(x, y) {
+    this.position.x = x;
+    this.position.y = y;
+    
+    // Use transform3d for GPU acceleration
+    this.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    
+    // Store in dataset for debugging
+    this.element.dataset.dragX = x;
+    this.element.dataset.dragY = y;
   }
-
-  /**
-   * Center element in viewport
-   */
-  centerElement() {
-    const rect = this.element.getBoundingClientRect();
-    const padding = 20; // Padding from edges
-    
-    // Calculate center position
-    let x = (window.innerWidth - rect.width) / 2;
-    let y = (window.innerHeight - rect.height) / 2;
-    
-    // Ensure element stays within viewport bounds
-    x = Math.max(padding, Math.min(x, window.innerWidth - rect.width - padding));
-    y = Math.max(padding, Math.min(y, window.innerHeight - rect.height - padding));
-    
-    this.currentX = x;
-    this.currentY = y;
-    this.xOffset = x;
-    this.yOffset = y;
-    
-    this.setTranslate(x, y);
+  
+  getPosition() {
+    return { ...this.position };
   }
-
-  /**
-   * Update position (for external use)
-   */
-  setPosition(x, y, animate = false) {
+  
+  // Public method to set position programmatically
+  moveTo(x, y, animate = false) {
     if (animate) {
       this.animateToPosition(x, y);
     } else {
-      this.currentX = x;
-      this.currentY = y;
-      this.xOffset = x;
-      this.yOffset = y;
-      this.setTranslate(x, y);
+      this.setPosition(x, y);
     }
   }
-
-  /**
-   * Get current position
-   */
-  getPosition() {
-    return {
-      x: this.currentX,
-      y: this.currentY
-    };
-  }
-
-  /**
-   * Enable/disable dragging
-   */
-  setEnabled(enabled) {
-    if (enabled) {
-      this.dragHandle.style.pointerEvents = 'auto';
-      this.dragHandle.style.opacity = '1';
-    } else {
-      this.dragHandle.style.pointerEvents = 'none';
-      this.dragHandle.style.opacity = '0.5';
-    }
-  }
-
-  /**
-   * Destroy drag manager
-   */
-  destroy() {
-    this.dragHandle.removeEventListener('mousedown', this.dragStart);
-    document.removeEventListener('mousemove', this.drag);
-    document.removeEventListener('mouseup', this.dragEnd);
+  
+  // Center element in viewport
+  center(animate = true) {
+    const rect = this.element.getBoundingClientRect();
+    const centerX = (window.innerWidth - rect.width) / 2;
+    const centerY = (window.innerHeight - rect.height) / 2;
     
-    this.dragHandle.removeEventListener('touchstart', this.dragStart);
-    document.removeEventListener('touchmove', this.drag);
-    document.removeEventListener('touchend', this.dragEnd);
+    this.moveTo(centerX, centerY, animate);
   }
-
-  /**
-   * Save position to storage
-   */
+  
+  // Save position to localStorage
   async savePosition() {
-    const position = this.getPosition();
-    await chrome.storage.local.set({
-      bobbyPopupPosition: position
-    });
+    try {
+      const key = `bobby-popup-position-${window.location.hostname}`;
+      localStorage.setItem(key, JSON.stringify(this.position));
+    } catch (error) {
+      console.warn('Could not save position:', error);
+    }
   }
-
-  /**
-   * Restore position from storage
-   */
+  
+  // Restore position from localStorage
   async restorePosition() {
     try {
-      const stored = await chrome.storage.local.get('bobbyPopupPosition');
-      if (stored.bobbyPopupPosition) {
-        const { x, y } = stored.bobbyPopupPosition;
+      const key = `bobby-popup-position-${window.location.hostname}`;
+      const saved = localStorage.getItem(key);
+      
+      if (saved) {
+        const position = JSON.parse(saved);
         
         // Validate position is within current viewport
         const rect = this.element.getBoundingClientRect();
-        const padding = 50;
+        const bounds = this.getContainmentBounds();
         
-        // Ensure at least part of the element is visible
-        const validX = Math.max(-rect.width + padding, Math.min(x, window.innerWidth - padding));
-        const validY = Math.max(-rect.height + padding, Math.min(y, window.innerHeight - padding));
+        position.x = Math.max(bounds.minX, Math.min(position.x, bounds.maxX));
+        position.y = Math.max(bounds.minY, Math.min(position.y, bounds.maxY));
         
-        this.setPosition(validX, validY);
+        this.setPosition(position.x, position.y);
+        return true;
       }
     } catch (error) {
-      console.error('Error restoring position:', error);
+      console.warn('Could not restore position:', error);
     }
+    return false;
+  }
+  
+  // Enable/disable dragging
+  setEnabled(enabled) {
+    if (enabled) {
+      this.handle.style.pointerEvents = 'auto';
+      this.handle.style.opacity = '1';
+      this.handle.style.cursor = 'move';
+    } else {
+      this.handle.style.pointerEvents = 'none';
+      this.handle.style.opacity = '0.5';
+      this.handle.style.cursor = 'not-allowed';
+    }
+  }
+  
+  // Clean up
+  destroy() {
+    this.handle.removeEventListener('pointerdown', this.handlePointerDown);
+    document.removeEventListener('pointermove', this.handlePointerMove);
+    document.removeEventListener('pointerup', this.handlePointerUp);
+    document.removeEventListener('pointercancel', this.handlePointerCancel);
+    
+    // Reset element styles
+    this.element.style.transition = '';
+    this.element.style.willChange = '';
+    this.element.classList.remove('bobby-dragging');
   }
 }
 

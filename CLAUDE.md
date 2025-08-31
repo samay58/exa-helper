@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Bobby** is a Chrome Extension (Manifest V3) that provides AI-powered text analysis through a modern interface. Users highlight text on any webpage or PDF to get instant insights using Anthropic Claude, OpenAI, Exa, and Perplexity APIs.
 
+### Current Development Status
+The project has recently undergone significant updates:
+- New glassmorphism UI system (styles-v2.css, styles-rauno.css)
+- **Premium Rauno design system** - Complete redesign from Swiss minimalism to world-class modern UI
+- Enhanced module system with GridSystem and RaunoEffects
+- Improved error handling and storage management
+- Design system documentation (BOBBY_MASTER_BRIEF.md, EXECUTIVE_BRIEF.md, RAUNO_DESIGN_AESTHETIC.md, DESIGN_EVOLUTION.md)
+
 ## Development Setup & Commands
 
 ### Initial Setup
@@ -24,7 +32,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 1. Navigate to chrome://extensions/
 2. Enable "Developer mode"
 3. Click "Load unpacked"
-4. Select the /Users/samaydhawan/exa-helper directory
+4. Select the extension directory
+5. For PDF support: Enable "Allow access to file URLs" in extension details
 ```
 
 ### Debugging & Testing
@@ -33,6 +42,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Test text selection on different sites (especially PDFs)
 - Verify API calls in Network tab of DevTools
 - **Important**: Check background script console for API errors (right-click extension → Inspect views: service worker)
+
+### Manual Testing Checklist
+1. Text selection on regular websites
+2. Text selection on PDFs
+3. Button layout in light/dark modes
+4. Popup dragging near screen edges
+5. API responses for all prompt modes (Explain, Summarize, Key Points, etc.)
+6. Error handling for rate limits and network failures
+7. Fact-check feature with Exa integration
+8. History tracking and storage management
 
 ### Common Console Commands
 ```javascript
@@ -221,13 +240,83 @@ if (arrayMatch) return arrayMatch[0];
 - **components/modules/HallucinationDetector.js:597-651** - Improved fallback parsing with 15+ patterns
 - **components/modules/HistoryManager.js:245-303** - Storage cleanup implementation
 
-## Testing Checklist
+## Design System Constraints
 
-When making changes, test:
-1. Text selection on regular websites
-2. Text selection on PDFs
-3. Button layout in light/dark modes
-4. Popup dragging near screen edges
-5. API responses for all modes
-6. Error handling for rate limits
-7. Console for any errors
+### Rauno-Inspired Aesthetic Implementation
+The extension follows design principles from RAUNO_DESIGN_AESTHETIC.md:
+- **Grid System**: Uses GridSystem.js with visible alignment guides
+- **Motion**: Choreographed sequences under 200ms for performance
+- **Depth**: Achieved through layering and transparency, NOT blur on text
+- **Typography**: System font stack with consistent baseline alignment
+- **Color**: Minimal palette with single accent color for contrast
+
+### New Glassmorphism & Effects
+When `USE_GLASSMORPHISM: true` in config:
+- styles-v2.css loads with modern glass effects
+- RaunoEffects.js provides sophisticated animations
+- GridSystem.js manages spatial layout
+- ParticleEffects.js adds visual polish (if enabled)
+
+## Design System Evolution (Latest Session)
+
+### Rauno System Transformation
+The Rauno design system underwent a complete redesign from blocky/childish appearance to premium modern interface:
+
+**Key Improvements:**
+- **Design Tokens**: 11+ gray shades, full accent palette, refined spacing (16 increments)
+- **Typography**: Perfect fourth scale (1.333 ratio) for dramatic hierarchy
+- **Components**: Floating cards, glass-morphic buttons, segmented controls
+- **Animations**: 7 easing curves, staggered entrances, micro-interactions
+- **Dark Mode**: RGBA-based colors, 6-16% opacity borders for subtle depth
+
+**Design Principles Applied:**
+- Layer shadows for realistic depth (multi-layer system)
+- Subtle grain textures for premium feel
+- Gradient overlays for depth without blur
+- Sub-200ms animations for snappy interactions
+- Custom scrollbars and selection colors
+
+**Files Modified:**
+- `styles-rauno.css` - Complete overhaul with modern design system
+- `config.js` - Enable RAUNO_MODE for testing
+
+## Known Issues & Solutions
+
+### Module Loading Race Conditions
+The extension uses sequential script loading which can cause race conditions. Always check module availability:
+```javascript
+if (!window.ButtonManager) {
+  console.error('ButtonManager not loaded');
+  return;
+}
+```
+
+### Chrome Storage Quota
+HistoryManager.js automatically manages storage:
+- Keeps only last 50 entries
+- Cleans up when quota exceeded
+- Non-blocking saves to prevent UI freezes
+
+### API Response JSON Parsing
+HallucinationDetector handles malformed JSON from AI:
+- Strips explanatory text before JSON
+- Multiple extraction patterns
+- Fallback parsing with 15+ regex patterns
+- Temperature 0.1 for consistency
+
+## Architecture Documentation
+
+### Key Design Documents
+1. **BOBBY_MASTER_BRIEF.md** - Comprehensive rebuild strategy with learnings from 15+ dev sessions
+2. **EXECUTIVE_BRIEF.md** - Detailed current architecture analysis and problems
+3. **RAUNO_DESIGN_AESTHETIC.md** - Design system inspired by Rauno Freiberg's work
+4. **CLAUDE_COLD_START_PROMPT.md** - Context for Claude when starting fresh sessions
+
+### Recommended Reading Order
+For major refactoring or architectural changes:
+1. Read EXECUTIVE_BRIEF.md for current state analysis
+2. Review BOBBY_MASTER_BRIEF.md for lessons learned
+3. Check DESIGN_EVOLUTION.md for design system transformation process
+4. Check RAUNO_DESIGN_AESTHETIC.md for evolved design principles
+5. Reference this CLAUDE.md for practical development
+6. Review SESSION_LOG.md for recent session progress

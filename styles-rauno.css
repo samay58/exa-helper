@@ -1,0 +1,1386 @@
+/* Bobby Chrome Extension - Modern Premium Design System */
+/* Inspired by Linear, v0, and top-tier modern interfaces */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ============================================
+   ROOT VARIABLES - Modern Design Foundation
+   ============================================ */
+:root {
+  /* Typography - Modern Sans-serif Stack */
+  --rauno-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+                     'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --rauno-font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 
+                     'Roboto Mono', Monaco, monospace;
+  
+  /* Type Scale - Perfect Fourth (1.333) for more dramatic hierarchy */
+  --rauno-text-2xs: 0.694rem;   /* 11px */
+  --rauno-text-xs: 0.833rem;    /* 13px */
+  --rauno-text-sm: 0.875rem;    /* 14px */
+  --rauno-text-base: 1rem;      /* 16px */
+  --rauno-text-lg: 1.125rem;    /* 18px */
+  --rauno-text-xl: 1.333rem;    /* 21px */
+  --rauno-text-2xl: 1.777rem;   /* 28px */
+  --rauno-text-3xl: 2.369rem;   /* 38px */
+  
+  /* Line Heights - Optimized for readability */
+  --rauno-leading-tight: 1.2;
+  --rauno-leading-snug: 1.375;
+  --rauno-leading-normal: 1.5;
+  --rauno-leading-relaxed: 1.625;
+  --rauno-leading-loose: 1.75;
+  
+  /* Letter Spacing - Refined optical adjustments */
+  --rauno-tracking-tighter: -0.05em;
+  --rauno-tracking-tight: -0.025em;
+  --rauno-tracking-normal: 0;
+  --rauno-tracking-wide: 0.025em;
+  --rauno-tracking-wider: 0.05em;
+  
+  /* Sophisticated Neutral Palette - 11 shades */
+  --rauno-gray-50: #fafafa;
+  --rauno-gray-100: #f5f5f5;
+  --rauno-gray-150: #ededed;
+  --rauno-gray-200: #e5e5e5;
+  --rauno-gray-300: #d4d4d4;
+  --rauno-gray-400: #a3a3a3;
+  --rauno-gray-500: #737373;
+  --rauno-gray-600: #525252;
+  --rauno-gray-700: #404040;
+  --rauno-gray-800: #262626;
+  --rauno-gray-850: #1a1a1a;
+  --rauno-gray-900: #0a0a0a;
+  --rauno-gray-950: #050505;
+  
+  /* Premium Accent System - Amber/Orange with depth */
+  --rauno-accent-50: #fffbeb;
+  --rauno-accent-100: #fef3c7;
+  --rauno-accent-200: #fde68a;
+  --rauno-accent-300: #fcd34d;
+  --rauno-accent-400: #fbbf24;
+  --rauno-accent-500: #f59e0b;
+  --rauno-accent-600: #d97706;
+  --rauno-accent-700: #b45309;
+  --rauno-accent-800: #92400e;
+  --rauno-accent-900: #78350f;
+  
+  /* Main accent colors */
+  --rauno-accent: var(--rauno-accent-500);
+  --rauno-accent-hover: var(--rauno-accent-600);
+  --rauno-accent-active: var(--rauno-accent-700);
+  
+  /* Semantic Colors - Sophisticated */
+  --rauno-success: #10b981;
+  --rauno-warning: #f59e0b;
+  --rauno-error: #ef4444;
+  --rauno-info: #3b82f6;
+  
+  /* Light Mode Backgrounds */
+  --rauno-bg-base: #ffffff;
+  --rauno-bg-subtle: #fafafa;
+  --rauno-bg-muted: var(--rauno-gray-50);
+  --rauno-bg-emphasis: var(--rauno-gray-100);
+  --rauno-bg-inverse: var(--rauno-gray-900);
+  
+  /* Light Mode Text */
+  --rauno-text-primary: var(--rauno-gray-900);
+  --rauno-text-secondary: var(--rauno-gray-700);
+  --rauno-text-tertiary: var(--rauno-gray-500);
+  --rauno-text-quaternary: var(--rauno-gray-400);
+  --rauno-text-inverse: white;
+  
+  /* Borders - More nuanced */
+  --rauno-border-subtle: var(--rauno-gray-150);
+  --rauno-border-default: var(--rauno-gray-200);
+  --rauno-border-strong: var(--rauno-gray-300);
+  --rauno-border-hover: var(--rauno-accent-400);
+  
+  /* Spacing System - Refined 4px/8px grid */
+  --rauno-space-0: 0;          /* 0px */
+  --rauno-space-px: 1px;       /* 1px */
+  --rauno-space-0-5: 0.125rem; /* 2px */
+  --rauno-space-1: 0.25rem;    /* 4px */
+  --rauno-space-1-5: 0.375rem; /* 6px */
+  --rauno-space-2: 0.5rem;     /* 8px */
+  --rauno-space-3: 0.75rem;    /* 12px */
+  --rauno-space-4: 1rem;       /* 16px */
+  --rauno-space-5: 1.25rem;    /* 20px */
+  --rauno-space-6: 1.5rem;     /* 24px */
+  --rauno-space-7: 1.75rem;    /* 28px */
+  --rauno-space-8: 2rem;       /* 32px */
+  --rauno-space-10: 2.5rem;    /* 40px */
+  --rauno-space-12: 3rem;      /* 48px */
+  --rauno-space-16: 4rem;      /* 64px */
+  
+  /* Border Radius - Modern values */
+  --rauno-radius-xs: 0.125rem;  /* 2px */
+  --rauno-radius-sm: 0.375rem;  /* 6px */
+  --rauno-radius-md: 0.5rem;    /* 8px */
+  --rauno-radius-lg: 0.75rem;   /* 12px */
+  --rauno-radius-xl: 1rem;      /* 16px */
+  --rauno-radius-2xl: 1.5rem;   /* 24px */
+  --rauno-radius-full: 9999px;
+  
+  /* Animation - Refined timings */
+  --rauno-duration-instant: 75ms;
+  --rauno-duration-fast: 150ms;
+  --rauno-duration-normal: 200ms;
+  --rauno-duration-moderate: 250ms;
+  --rauno-duration-slow: 300ms;
+  --rauno-duration-slower: 400ms;
+  
+  /* Easing Functions - Premium curves */
+  --rauno-ease-linear: linear;
+  --rauno-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --rauno-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --rauno-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --rauno-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --rauno-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.175);
+  --rauno-ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* Shadows - Layered depth system */
+  --rauno-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --rauno-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --rauno-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --rauno-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --rauno-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.08), 0 10px 10px rgba(0, 0, 0, 0.04);
+  --rauno-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.12);
+  --rauno-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  
+  /* Glow effects */
+  --rauno-glow-xs: 0 0 4px rgba(245, 158, 11, 0.4);
+  --rauno-glow-sm: 0 0 8px rgba(245, 158, 11, 0.4);
+  --rauno-glow-md: 0 0 16px rgba(245, 158, 11, 0.3);
+  
+  /* Blur values for glassmorphism */
+  --rauno-blur-none: 0;
+  --rauno-blur-sm: 4px;
+  --rauno-blur-md: 8px;
+  --rauno-blur-lg: 12px;
+  --rauno-blur-xl: 24px;
+  
+  /* Grid System */
+  --rauno-grid-columns: 12;
+  --rauno-grid-gap: var(--rauno-space-4);
+  --rauno-container-max: 520px;
+}
+
+/* Dark Mode - Premium dark interface */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode backgrounds */
+    --rauno-bg-base: var(--rauno-gray-950);
+    --rauno-bg-subtle: var(--rauno-gray-900);
+    --rauno-bg-muted: var(--rauno-gray-850);
+    --rauno-bg-emphasis: var(--rauno-gray-800);
+    --rauno-bg-inverse: white;
+    
+    /* Dark mode text */
+    --rauno-text-primary: rgba(255, 255, 255, 0.95);
+    --rauno-text-secondary: rgba(255, 255, 255, 0.7);
+    --rauno-text-tertiary: rgba(255, 255, 255, 0.5);
+    --rauno-text-quaternary: rgba(255, 255, 255, 0.35);
+    --rauno-text-inverse: var(--rauno-gray-900);
+    
+    /* Dark mode borders - subtle but visible */
+    --rauno-border-subtle: rgba(255, 255, 255, 0.06);
+    --rauno-border-default: rgba(255, 255, 255, 0.1);
+    --rauno-border-strong: rgba(255, 255, 255, 0.16);
+    --rauno-border-hover: var(--rauno-accent-400);
+    
+    /* Dark mode shadows - deeper for depth */
+    --rauno-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --rauno-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --rauno-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+    --rauno-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+    --rauno-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5), 0 10px 10px rgba(0, 0, 0, 0.3);
+    --rauno-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.6);
+    --rauno-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ============================================
+   MAIN POPUP - Premium Floating Card
+   ============================================ */
+.bobby-popup-rauno {
+  position: fixed;
+  background: var(--rauno-bg-base);
+  border: 1px solid var(--rauno-border-subtle);
+  border-radius: var(--rauno-radius-xl);
+  box-shadow: var(--rauno-shadow-2xl);
+  font-family: var(--rauno-font-sans);
+  color: var(--rauno-text-primary);
+  z-index: 2147483647;
+  min-width: 360px;
+  max-width: var(--rauno-container-max);
+  overflow: hidden;
+  
+  /* Subtle texture overlay for depth */
+  position: relative;
+  
+  /* Smooth entrance animation */
+  opacity: 0;
+  transform: scale(0.96) translateY(10px);
+  transform-origin: var(--origin-x, center) var(--origin-y, top);
+  animation: raunoPopupReveal var(--rauno-duration-moderate) var(--rauno-ease-smooth) forwards;
+  
+  /* Subtle grain texture */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' /%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+@keyframes raunoPopupReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Swiss Grid System */
+.bobby-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--rauno-grid-columns), 1fr);
+  gap: var(--rauno-grid-gap);
+  position: relative;
+}
+
+/* Optional Grid Debug Mode */
+.bobby-grid[data-debug="true"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(90deg, 
+      var(--rauno-border) 0, 
+      var(--rauno-border) 1px, 
+      transparent 1px, 
+      transparent calc(100% / var(--rauno-grid-columns)));
+  pointer-events: none;
+  opacity: 0.1;
+  z-index: 1000;
+}
+
+/* ============================================
+   HEADER - Premium Draggable Header
+   ============================================ */
+.bobby-header-rauno {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--rauno-space-4) var(--rauno-space-5);
+  border-bottom: 1px solid var(--rauno-border-subtle);
+  cursor: move;
+  user-select: none;
+  position: relative;
+  z-index: 10;
+  
+  /* Subtle background */
+  background: var(--rauno-bg-subtle);
+  
+  /* Soft shadow for depth */
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+
+.bobby-header-rauno:active {
+  cursor: grabbing;
+  opacity: 0.95;
+}
+
+.bobby-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--rauno-space-2);
+  font-weight: 600;
+  font-size: var(--rauno-text-base);
+  letter-spacing: var(--rauno-tracking-tight);
+  color: var(--rauno-text-primary);
+}
+
+/* ============================================
+   BUTTONS - Modern Premium Design
+   ============================================ */
+.bobby-btn-rauno {
+  /* Reset */
+  appearance: none;
+  border: none;
+  background: none;
+  
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rauno-space-2);
+  padding: var(--rauno-space-2) var(--rauno-space-4);
+  min-height: 36px;
+  
+  /* Modern glass style */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
+  backdrop-filter: blur(var(--rauno-blur-sm));
+  border: 1px solid var(--rauno-border-subtle);
+  color: var(--rauno-text-secondary);
+  border-radius: var(--rauno-radius-md);
+  font-size: var(--rauno-text-sm);
+  font-weight: 500;
+  font-family: var(--rauno-font-sans);
+  letter-spacing: var(--rauno-tracking-wide);
+  
+  /* Smooth transitions */
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--rauno-duration-fast) var(--rauno-ease-out);
+  position: relative;
+  overflow: hidden;
+  
+  /* Subtle inner shadow for depth */
+  box-shadow: 
+    var(--rauno-shadow-xs),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Hover state - sophisticated interaction */
+.bobby-btn-rauno:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.04)
+  );
+  border-color: var(--rauno-border-default);
+  color: var(--rauno-text-primary);
+  transform: translateY(-1px);
+  box-shadow: 
+    var(--rauno-shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Active state - pressed effect */
+.bobby-btn-rauno:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: var(--rauno-duration-instant);
+  box-shadow: 
+    var(--rauno-shadow-xs),
+    inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus state for keyboard users */
+.bobby-btn-rauno:focus-visible {
+  outline: 2px solid var(--rauno-accent);
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.bobby-btn-rauno:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Active/Selected state - Premium accent */
+.bobby-btn-rauno[data-active="true"],
+.bobby-btn-rauno.active {
+  background: linear-gradient(
+    135deg,
+    var(--rauno-accent-500),
+    var(--rauno-accent-600)
+  );
+  border-color: var(--rauno-accent-600);
+  color: white;
+  font-weight: 600;
+  box-shadow: 
+    var(--rauno-shadow-md),
+    var(--rauno-glow-sm);
+}
+
+.bobby-btn-rauno[data-active="true"]:hover,
+.bobby-btn-rauno.active:hover {
+  background: linear-gradient(
+    135deg,
+    var(--rauno-accent-600),
+    var(--rauno-accent-700)
+  );
+  box-shadow: 
+    var(--rauno-shadow-lg),
+    var(--rauno-glow-md);
+}
+
+/* Icon-only button - Refined */
+.bobby-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--rauno-radius-md);
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.bobby-btn-icon:hover {
+  background: var(--rauno-bg-muted);
+  border-color: var(--rauno-border-subtle);
+}
+
+/* Touch target optimization */
+.bobby-btn-icon::after {
+  content: '';
+  position: absolute;
+  inset: -4px; /* 44px total hit area */
+  border-radius: inherit;
+}
+
+/* Close button - Elegant interaction */
+.bobby-close-rauno {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--rauno-radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--rauno-text-tertiary);
+  cursor: pointer;
+  transition: all var(--rauno-duration-fast) var(--rauno-ease-smooth);
+}
+
+.bobby-close-rauno:hover {
+  background: var(--rauno-bg-muted);
+  border-color: var(--rauno-border-subtle);
+  color: var(--rauno-text-primary);
+  transform: rotate(90deg) scale(1.1);
+}
+
+/* ============================================
+   MODE SELECTOR - Modern Segmented Control
+   ============================================ */
+.bobby-modes-rauno-container {
+  padding: var(--rauno-space-3) var(--rauno-space-5);
+  border-bottom: 1px solid var(--rauno-border-subtle);
+  background: var(--rauno-bg-base);
+}
+
+.bobby-modes-rauno {
+  display: flex;
+  gap: 0;
+  padding: var(--rauno-space-0-5);
+  background: var(--rauno-bg-muted);
+  border: 1px solid var(--rauno-border-subtle);
+  border-radius: var(--rauno-radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Mode buttons - Segmented control style */
+.bobby-mode-btn-rauno {
+  flex: 1;
+  padding: var(--rauno-space-1-5) var(--rauno-space-3);
+  min-height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--rauno-radius-lg) - 3px);
+  color: var(--rauno-text-tertiary);
+  font-family: var(--rauno-font-sans);
+  font-size: var(--rauno-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--rauno-duration-fast) var(--rauno-ease-smooth);
+  position: relative;
+  z-index: 2;
+}
+
+.bobby-mode-btn-rauno:hover:not(.active) {
+  color: var(--rauno-text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Active state with sliding indicator */
+.bobby-mode-btn-rauno.active {
+  background: var(--rauno-bg-base);
+  color: var(--rauno-text-primary);
+  box-shadow: 
+    var(--rauno-shadow-sm),
+    0 0 0 1px var(--rauno-border-subtle);
+  font-weight: 600;
+}
+
+/* Sliding indicator effect */
+.bobby-modes-rauno::before {
+  content: '';
+  position: absolute;
+  top: var(--rauno-space-0-5);
+  left: var(--indicator-offset, var(--rauno-space-0-5));
+  width: var(--indicator-width, 0);
+  height: calc(100% - var(--rauno-space-1));
+  background: var(--rauno-bg-base);
+  border-radius: calc(var(--rauno-radius-lg) - 3px);
+  box-shadow: var(--rauno-shadow-sm);
+  transition: all var(--rauno-duration-moderate) var(--rauno-ease-spring);
+  z-index: 1;
+}
+
+/* Staggered entrance animations */
+.bobby-stagger-in > * {
+  opacity: 0;
+  animation: raunoFadeInUp var(--rauno-duration-fast) var(--rauno-ease-smooth) forwards;
+}
+
+.bobby-stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+.bobby-stagger-in > *:nth-child(2) { animation-delay: 30ms; }
+.bobby-stagger-in > *:nth-child(3) { animation-delay: 60ms; }
+.bobby-stagger-in > *:nth-child(4) { animation-delay: 90ms; }
+.bobby-stagger-in > *:nth-child(5) { animation-delay: 120ms; }
+.bobby-stagger-in > *:nth-child(6) { animation-delay: 150ms; }
+
+@keyframes raunoFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth fade in */
+@keyframes raunoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scale entrance */
+@keyframes raunoScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   CONTENT AREA - Premium Typography
+   ============================================ */
+.bobby-content-rauno {
+  padding: var(--rauno-space-6) var(--rauno-space-5);
+  min-height: 200px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--rauno-bg-base);
+  position: relative;
+  
+  /* Premium typography */
+  font-size: var(--rauno-text-base);
+  line-height: var(--rauno-leading-relaxed);
+  color: var(--rauno-text-primary);
+  
+  /* Optimal text rendering */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rauno-border-subtle) transparent;
+}
+
+/* Webkit scrollbar styling */
+.bobby-content-rauno::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bobby-content-rauno::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bobby-content-rauno::-webkit-scrollbar-thumb {
+  background: var(--rauno-border-default);
+  border-radius: var(--rauno-radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.bobby-content-rauno::-webkit-scrollbar-thumb:hover {
+  background: var(--rauno-border-strong);
+}
+
+/* Markdown content - Premium typography */
+.bobby-markdown-rauno {
+  font-family: var(--rauno-font-sans);
+  color: var(--rauno-text-primary);
+  line-height: var(--rauno-leading-relaxed);
+}
+
+/* Headings with refined hierarchy */
+.bobby-markdown-rauno h1 {
+  font-size: var(--rauno-text-2xl);
+  font-weight: 700;
+  letter-spacing: var(--rauno-tracking-tight);
+  margin-top: var(--rauno-space-6);
+  margin-bottom: var(--rauno-space-3);
+  color: var(--rauno-text-primary);
+}
+
+.bobby-markdown-rauno h2 {
+  font-size: var(--rauno-text-xl);
+  font-weight: 600;
+  letter-spacing: var(--rauno-tracking-tight);
+  margin-top: var(--rauno-space-5);
+  margin-bottom: var(--rauno-space-2);
+  color: var(--rauno-text-primary);
+}
+
+.bobby-markdown-rauno h3 {
+  font-size: var(--rauno-text-lg);
+  font-weight: 600;
+  margin-top: var(--rauno-space-4);
+  margin-bottom: var(--rauno-space-2);
+}
+
+.bobby-markdown-rauno h4 {
+  font-size: var(--rauno-text-base);
+  font-weight: 600;
+  margin-top: var(--rauno-space-3);
+  margin-bottom: var(--rauno-space-2);
+}
+
+/* Paragraphs with optimal spacing */
+.bobby-markdown-rauno p {
+  margin-bottom: var(--rauno-space-4);
+  color: var(--rauno-text-secondary);
+}
+
+/* Lists with better indentation */
+.bobby-markdown-rauno ul,
+.bobby-markdown-rauno ol {
+  margin-left: var(--rauno-space-5);
+  margin-bottom: var(--rauno-space-4);
+  color: var(--rauno-text-secondary);
+}
+
+.bobby-markdown-rauno li {
+  margin-bottom: var(--rauno-space-1);
+}
+
+/* Inline code - polished style */
+.bobby-markdown-rauno code {
+  font-family: var(--rauno-font-mono);
+  font-size: 0.875em;
+  padding: var(--rauno-space-0-5) var(--rauno-space-1);
+  background: var(--rauno-bg-muted);
+  border: 1px solid var(--rauno-border-subtle);
+  border-radius: var(--rauno-radius-sm);
+  color: var(--rauno-accent-600);
+}
+
+/* Code blocks - enhanced styling */
+.bobby-markdown-rauno pre {
+  background: var(--rauno-bg-muted);
+  border: 1px solid var(--rauno-border-subtle);
+  padding: var(--rauno-space-4);
+  border-radius: var(--rauno-radius-md);
+  overflow-x: auto;
+  margin-bottom: var(--rauno-space-4);
+  box-shadow: var(--rauno-shadow-inner);
+}
+
+.bobby-markdown-rauno pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--rauno-text-primary);
+  font-size: 0.875rem;
+}
+
+/* Blockquotes - elegant style */
+.bobby-markdown-rauno blockquote {
+  border-left: 3px solid var(--rauno-accent-400);
+  padding-left: var(--rauno-space-4);
+  margin: var(--rauno-space-4) 0;
+  color: var(--rauno-text-tertiary);
+  font-style: italic;
+  background: var(--rauno-bg-subtle);
+  padding: var(--rauno-space-3) var(--rauno-space-4);
+  border-radius: var(--rauno-radius-md);
+}
+
+/* Content sections with refined spacing */
+.bobby-content-rauno > * + * {
+  margin-top: var(--rauno-space-3);
+}
+
+.bobby-content-rauno > h1 + *,
+.bobby-content-rauno > h2 + * {
+  margin-top: var(--rauno-space-2);
+}
+
+/* ============================================
+   ANALYSIS RESULT - Premium Card
+   ============================================ */
+.bobby-analysis-rauno {
+  background: linear-gradient(
+    135deg,
+    var(--rauno-bg-subtle),
+    var(--rauno-bg-muted)
+  );
+  border: 1px solid var(--rauno-border-subtle);
+  border-radius: var(--rauno-radius-lg);
+  padding: var(--rauno-space-5);
+  position: relative;
+  margin: var(--rauno-space-4) 0;
+  
+  /* Layered shadow for depth */
+  box-shadow: 
+    var(--rauno-shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  
+  /* Smooth entrance */
+  animation: raunoAnalysisReveal var(--rauno-duration-moderate) var(--rauno-ease-smooth);
+}
+
+@keyframes raunoAnalysisReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Result header */
+.bobby-analysis-header {
+  display: flex;
+  align-items: center;
+  gap: var(--rauno-space-2);
+  margin-bottom: var(--rauno-space-3);
+  padding-bottom: var(--rauno-space-3);
+  border-bottom: 1px solid var(--rauno-border-subtle);
+}
+
+.bobby-analysis-title {
+  font-size: var(--rauno-text-lg);
+  font-weight: 600;
+  color: var(--rauno-text-primary);
+  letter-spacing: var(--rauno-tracking-tight);
+}
+
+/* ============================================
+   LOADING STATES - Premium Skeleton
+   ============================================ */
+@keyframes raunoShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.bobby-skeleton-rauno {
+  position: relative;
+  background: var(--rauno-bg-muted);
+  border-radius: var(--rauno-radius-sm);
+  height: 16px;
+  margin: var(--rauno-space-2) 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Shimmer overlay */
+.bobby-skeleton-rauno::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: raunoShimmer 1.5s ease-in-out infinite;
+}
+
+/* Varying widths for organic feel */
+.bobby-skeleton-rauno:nth-child(1) { width: 95%; }
+.bobby-skeleton-rauno:nth-child(2) { width: 80%; height: 14px; }
+.bobby-skeleton-rauno:nth-child(3) { width: 65%; height: 14px; }
+.bobby-skeleton-rauno:nth-child(4) { width: 75%; }
+
+/* Loading dots animation */
+@keyframes raunoDots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+.bobby-loading-text::after {
+  content: '.';
+  animation: raunoDots 1.5s infinite;
+}
+
+/* ============================================
+   MICRO-INTERACTIONS
+   ============================================ */
+.bobby-magnetic {
+  transition: transform var(--rauno-duration-fast) var(--rauno-ease-smooth);
+}
+
+.bobby-magnetic:hover {
+  transform: var(--magnetic-offset, translate(0, 0));
+}
+
+/* Pulse effect */
+@keyframes raunoPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.bobby-pulse {
+  animation: raunoPulse 0.3s var(--rauno-ease-smooth);
+}
+
+/* Ripple effect */
+@keyframes raunoRipple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.bobby-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--rauno-accent-400);
+  transform: scale(0);
+  animation: raunoRipple 0.6s ease-out;
+  pointer-events: none;
+}
+
+/* ============================================
+   UNDERLINE ANIMATION FOR LINKS
+   ============================================ */
+.bobby-link-rauno {
+  position: relative;
+  color: var(--rauno-text-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.bobby-link-rauno::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--rauno-accent);
+  transition: width var(--rauno-duration-fast) var(--rauno-ease-out);
+}
+
+.bobby-link-rauno:hover::after {
+  width: 100%;
+}
+
+/* ============================================
+   PARTICLE CONTAINER
+   ============================================ */
+.bobby-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483646;
+}
+
+.bobby-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--rauno-accent);
+  border-radius: var(--rauno-radius-full);
+  opacity: 0;
+  animation: raunoParticle 1s var(--rauno-ease-out);
+}
+
+@keyframes raunoParticle {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0);
+  }
+}
+
+/* ============================================
+   FOOTER - Premium Actions
+   ============================================ */
+.bobby-footer-rauno {
+  padding: var(--rauno-space-4) var(--rauno-space-5);
+  border-top: 1px solid var(--rauno-border-subtle);
+  background: linear-gradient(
+    to bottom,
+    var(--rauno-bg-base),
+    var(--rauno-bg-subtle)
+  );
+  display: flex;
+  justify-content: center;
+  gap: var(--rauno-space-3);
+}
+
+.bobby-footer-rauno .bobby-btn-rauno {
+  flex: 1;
+  max-width: 280px;
+}
+
+/* ============================================
+   FOLLOW-UP SECTION - Premium Integration
+   ============================================ */
+.bobby-followup-section {
+  padding: var(--rauno-space-3) var(--rauno-space-5);
+  border-top: 1px solid var(--rauno-border-subtle);
+  background: linear-gradient(
+    to bottom,
+    var(--rauno-bg-base),
+    var(--rauno-bg-subtle)
+  );
+  position: relative;
+}
+
+/* Follow-up inline button - Modern style */
+.bobby-followup-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rauno-space-2);
+  padding: var(--rauno-space-2) var(--rauno-space-4);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid var(--rauno-border-subtle);
+  border-radius: var(--rauno-radius-md);
+  color: var(--rauno-text-tertiary);
+  font-family: var(--rauno-font-sans);
+  font-size: var(--rauno-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--rauno-duration-fast) var(--rauno-ease-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.bobby-followup-inline-btn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.04)
+  );
+  border-color: var(--rauno-accent-400);
+  color: var(--rauno-accent);
+  transform: translateX(3px);
+  box-shadow: var(--rauno-shadow-sm);
+}
+
+.bobby-followup-icon {
+  font-size: var(--rauno-text-sm);
+  transition: transform var(--rauno-duration-fast) ease;
+}
+
+.bobby-followup-text {
+  font-size: var(--rauno-text-sm);
+  letter-spacing: var(--rauno-tracking-wide);
+}
+
+/* Follow-up input container - Swiss integrated style */
+.bobby-followup-integrated {
+  width: 100%;
+  animation: raunoSlideIn var(--rauno-duration-fast) var(--rauno-ease-spring);
+}
+
+@keyframes raunoSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bobby-followup-input-group {
+  display: flex;
+  gap: var(--rauno-space-2);
+  align-items: center;
+  background: var(--rauno-bg-secondary);
+  border: 1px solid var(--rauno-border);
+  border-radius: var(--rauno-radius-md);
+  padding: var(--rauno-space-1);
+}
+
+.bobby-followup-input-group:focus-within {
+  border-color: var(--rauno-accent);
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.1);
+}
+
+.bobby-followup-input-field {
+  flex: 1;
+  padding: var(--rauno-space-2) var(--rauno-space-3);
+  border: none;
+  background: transparent;
+  color: var(--rauno-text-primary);
+  font-family: var(--rauno-font-sans);
+  font-size: var(--rauno-text-sm);
+  line-height: 1.5;
+  -webkit-appearance: none;
+}
+
+.bobby-followup-input-field:focus {
+  outline: none;
+}
+
+.bobby-followup-input-field::placeholder {
+  color: var(--rauno-text-tertiary);
+}
+
+.bobby-followup-submit-btn,
+.bobby-followup-cancel-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--rauno-radius-sm);
+  background: var(--rauno-bg-tertiary);
+  color: var(--rauno-text-secondary);
+  cursor: pointer;
+  transition: all var(--rauno-duration-fast) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--rauno-text-base);
+}
+
+.bobby-followup-submit-btn {
+  background: var(--rauno-accent);
+  color: white;
+}
+
+.bobby-followup-submit-btn:hover {
+  background: var(--rauno-accent-hover);
+  transform: scale(1.05);
+}
+
+.bobby-followup-cancel-btn:hover {
+  background: var(--rauno-bg-secondary);
+  color: var(--rauno-text-primary);
+}
+
+/* ============================================
+   SELECTED CONTEXT - Elegant Display
+   ============================================ */
+.bobby-selected-context {
+  padding: var(--rauno-space-3) var(--rauno-space-5);
+  background: var(--rauno-bg-subtle);
+  border-bottom: 1px solid var(--rauno-border-subtle);
+  font-size: var(--rauno-text-sm);
+  position: relative;
+}
+
+.bobby-context-header {
+  display: flex;
+  align-items: center;
+  gap: var(--rauno-space-2);
+}
+
+.bobby-context-label {
+  font-weight: 500;
+  color: var(--rauno-text-secondary);
+  text-transform: uppercase;
+  font-size: var(--rauno-text-xs);
+  letter-spacing: var(--rauno-tracking-wide);
+}
+
+.bobby-context-preview {
+  flex: 1;
+  color: var(--rauno-text-primary);
+  font-family: var(--rauno-font-mono);
+  font-size: var(--rauno-text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================
+   ERROR STATES - Elegant Errors
+   ============================================ */
+.bobby-error-rauno {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.08),
+    rgba(239, 68, 68, 0.04)
+  );
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--rauno-radius-lg);
+  padding: var(--rauno-space-4);
+  color: var(--rauno-error);
+  font-size: var(--rauno-text-sm);
+  font-weight: 500;
+  animation: raunoErrorPulse 0.5s var(--rauno-ease-smooth);
+}
+
+@keyframes raunoErrorPulse {
+  0% { 
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   EMPTY STATES - Thoughtful Design
+   ============================================ */
+.bobby-empty-rauno {
+  text-align: center;
+  padding: var(--rauno-space-8) var(--rauno-space-6);
+  color: var(--rauno-text-tertiary);
+  animation: raunoFadeIn var(--rauno-duration-slow) ease;
+}
+
+.bobby-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--rauno-space-4);
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.bobby-empty-title {
+  font-size: var(--rauno-text-lg);
+  font-weight: 600;
+  color: var(--rauno-text-secondary);
+  margin-bottom: var(--rauno-space-2);
+}
+
+.bobby-empty-description {
+  font-size: var(--rauno-text-sm);
+  color: var(--rauno-text-tertiary);
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   ACCESSIBILITY - Premium Focus States
+   ============================================ */
+.bobby-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: var(--rauno-space-2) var(--rauno-space-4);
+  background: var(--rauno-bg-base);
+  color: var(--rauno-text-primary);
+  text-decoration: none;
+  z-index: 100;
+  border-radius: var(--rauno-radius-md);
+  border: 2px solid var(--rauno-accent);
+}
+
+.bobby-skip-link:focus {
+  top: var(--rauno-space-2);
+  left: var(--rauno-space-2);
+}
+
+/* Selection colors */
+::selection {
+  background: var(--rauno-accent-200);
+  color: var(--rauno-accent-900);
+}
+
+/* Focus visible for all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--rauno-accent-500);
+  outline-offset: 2px;
+  border-radius: var(--rauno-radius-sm);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 480px) {
+  .bobby-popup-rauno {
+    max-width: calc(100vw - var(--rauno-space-6));
+    min-width: 320px;
+    border-radius: var(--rauno-radius-lg);
+  }
+  
+  .bobby-modes-rauno {
+    gap: var(--rauno-space-0-5);
+  }
+  
+  .bobby-mode-btn-rauno {
+    padding: var(--rauno-space-1) var(--rauno-space-2);
+    font-size: var(--rauno-text-xs);
+  }
+  
+  .bobby-content-rauno {
+    padding: var(--rauno-space-4);
+    max-height: 350px;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION - Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+@media (prefers-contrast: high) {
+  .bobby-popup-rauno {
+    border-width: 2px;
+  }
+  
+  .bobby-btn-rauno {
+    border: 1px solid currentColor;
+  }
+  
+  .bobby-btn-rauno[data-active="true"] {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  .bobby-popup-rauno {
+    display: none;
+  }
+}
+
+/* ============================================
+   DARK MODE ENHANCEMENTS
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  /* Refined dark backgrounds */
+  .bobby-popup-rauno {
+    background: var(--rauno-bg-base);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .bobby-popup-rauno::before {
+    opacity: 0.01; /* Even subtler grain in dark */
+  }
+  
+  /* Header dark adjustments */
+  .bobby-header-rauno {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+  
+  /* Button dark refinements */
+  .bobby-btn-rauno {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.03)
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .bobby-btn-rauno:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05)
+    );
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  
+  /* Mode selector dark polish */
+  .bobby-modes-rauno {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+  
+  .bobby-mode-btn-rauno.active {
+    background: var(--rauno-bg-base);
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  
+  /* Content dark mode */
+  .bobby-markdown-rauno code {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--rauno-accent-400);
+  }
+  
+  .bobby-markdown-rauno pre {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+  
+  /* Follow-up dark mode */
+  .bobby-followup-section {
+    background: linear-gradient(
+      to bottom,
+      var(--rauno-bg-base),
+      rgba(255, 255, 255, 0.02)
+    );
+    border-top-color: rgba(255, 255, 255, 0.06);
+  }
+  
+  /* Scrollbar dark mode */
+  .bobby-content-rauno::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .bobby-content-rauno::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
