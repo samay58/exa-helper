@@ -62,7 +62,7 @@ class InteractionEffects {
   /**
    * Animate element with spring physics
    */
-  animateSpring(element, properties, duration = 1000) {
+  animateSpring(element, properties, duration = 200) {
     if (!this.enabled || !element) return Promise.resolve();
     
     return new Promise((resolve) => {
@@ -218,13 +218,8 @@ class InteractionEffects {
   bounce(element, intensity = 1.2) {
     if (!this.enabled || !element) return;
     
-    this.animateSpring(element, {
-      scale: intensity
-    }, 300).then(() => {
-      this.animateSpring(element, {
-        scale: 1
-      }, 300);
-    });
+    this.animateSpring(element, { scale: intensity }, 160)
+      .then(() => this.animateSpring(element, { scale: 1 }, 160));
     
     // Haptic feedback
     this.haptic('light');
@@ -245,11 +240,7 @@ class InteractionEffects {
     ];
     
     let promise = Promise.resolve();
-    sequence.forEach(props => {
-      promise = promise.then(() => 
-        this.animateSpring(element, props, 100)
-      );
-    });
+    sequence.forEach(props => { promise = promise.then(() => this.animateSpring(element, props, 40)); });
     
     // Haptic feedback
     this.haptic('medium');
@@ -265,9 +256,7 @@ class InteractionEffects {
     
     element.style.transform = `scale(${from})`;
     
-    return this.animateSpring(element, {
-      scale: to
-    }, 600);
+    return this.animateSpring(element, { scale: to }, 180);
   }
 
   /**
@@ -296,7 +285,7 @@ class InteractionEffects {
       finalProps[prop] = 0;
     }
     
-    return this.animateSpring(element, finalProps, 800);
+    return this.animateSpring(element, finalProps, 180);
   }
 
   /**
@@ -304,15 +293,12 @@ class InteractionEffects {
    */
   popButton(button) {
     if (!this.enabled || !button) return;
+    if (button.dataset.highfreq === 'true') return;
     
     // Quick scale down then spring back
     button.style.transform = 'scale(0.95)';
     
-    setTimeout(() => {
-      this.animateSpring(button, {
-        scale: 1
-      }, 400);
-    }, 50);
+    setTimeout(() => { this.animateSpring(button, { scale: 1 }, 160); }, 40);
     
     // Haptic feedback
     this.haptic('light');
@@ -342,10 +328,7 @@ class InteractionEffects {
     element.appendChild(ripple);
     
     // Animate ripple
-    this.animateSpring(ripple, {
-      scale: 2,
-      opacity: 0
-    }, 600).then(() => {
+    this.animateSpring(ripple, { scale: 2, opacity: 0 }, 180).then(() => {
       ripple.remove();
     });
   }

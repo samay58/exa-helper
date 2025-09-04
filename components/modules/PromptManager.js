@@ -15,33 +15,33 @@ class PromptManager {
       explain: {
         name: 'Explain',
         icon: '💡',
-        description: 'Clear explanation of complex concepts',
-        systemPrompt: 'You are an expert at clear, concise explanations. Be direct and focused. Aim for 2-3 short paragraphs that capture the essence without unnecessary detail. Start immediately with the explanation.',
-        userPrompt: (text) => `Explain this clearly and concisely in 2-3 paragraphs. Focus on what it means and why it matters:\n\n"${text}"`
+        description: 'Analogy-first, 2–3 short sentences',
+        systemPrompt: 'You explain like a friendly neighbor, not a professor. Use only common words a 10-year-old knows. Maximum 2–3 short sentences. First: simple "It\'s like …" analogy. Second: what it actually does. Third (optional): one everyday example. Stay under 50 words total.',
+        userPrompt: (text) => `Explain in 2–3 short sentences (max 50 words). Start with "It\'s like …", then say what it does; optionally give one everyday example:\n\n"${text}"\n\nKeep it plain, concrete, and skimmable.`
       },
       
       summarize: {
         name: 'Summarize',
         icon: '📝',
         description: 'Concise summary of content',
-        systemPrompt: 'You create tight, focused summaries. Be extremely concise - aim for 1-2 short paragraphs maximum. Include only the most essential information. Start immediately with the summary.',
-        userPrompt: (text) => `Summarize the key points in 1-2 tight paragraphs. Include only what\'s most important:\n\n"${text}"`
+        systemPrompt: 'You create extremely concise summaries using bullet points for clarity. Maximum 3 key points, each under 15 words. Focus only on the most essential information. No preamble or conclusion.',
+        userPrompt: (text) => `Summarize in exactly 3 bullet points (max 15 words each):\n\n"${text}"\n\nFormat:\n• [Most important point]\n• [Second key point]\n• [Third essential point]`
       },
       
       keyPoints: {
         name: 'Key Points',
         icon: '🔑',
         description: 'Extract main ideas',
-        systemPrompt: 'You extract only the most crucial points. Be extremely selective - include only 3-5 key points that truly matter. Each point should be one clear, concise sentence.',
-        userPrompt: (text) => `List the 3-5 most important points from this text. One clear sentence per point:\n\n"${text}"`
+        systemPrompt: 'You extract only the most crucial points. Maximum 5 points. Each point must be one complete sentence under 20 words. Be extremely selective - quality over quantity.',
+        userPrompt: (text) => `List the 3-5 most important points (one sentence each, under 20 words):\n\n"${text}"\n\nFormat:\n1. [First key point]\n2. [Second key point]\n3. [Third key point]`
       },
       
       eli5: {
         name: 'ELI5',
         icon: '👶',
         description: 'Explain Like I\'m 5',
-        systemPrompt: 'You explain things using only simple words and fun comparisons. Keep it short and playful - like a quick bedtime story. No long explanations, just the simple truth in 1-2 short paragraphs.',
-        userPrompt: (text) => `Explain this using simple words and fun comparisons, like talking to a 5-year-old:\n\n"${text}"`
+        systemPrompt: 'You explain like talking to a 5-year-old. Use only simple, common words. Maximum 3-5 SHORT sentences total. Each sentence must be under 15 words. Include ONE fun comparison or analogy. No complex concepts.',
+        userPrompt: (text) => `In 3-5 simple sentences (each under 15 words), explain this like I\'m 5:\n\n"${text}"\n\nRules: Simple words only. One fun comparison. Maximum 5 sentences, each under 15 words.`
       },
       
       factcheck: {
@@ -86,10 +86,13 @@ class PromptManager {
   generatePrompt(text, modeKey, options = {}) {
     const mode = this.getMode(modeKey);
     
+    // Add variety to responses with contextual hints
+    const varietyHints = this.getVarietyHint(modeKey);
+    
     const messages = [
       {
         role: 'system',
-        content: mode.systemPrompt + '\n\nBe concise and direct. Avoid unnecessary elaboration. Get to the point quickly.'
+        content: mode.systemPrompt + (varietyHints ? `\n\n${varietyHints}` : '')
       },
       {
         role: 'user',
@@ -115,6 +118,44 @@ class PromptManager {
     }
     
     return messages;
+  }
+  
+  /**
+   * Get variety hint to avoid repetitive responses
+   */
+  getVarietyHint(modeKey) {
+    const hints = {
+      explain: [
+        'Use a practical example or analogy to illustrate the concept.',
+        'Start with a relatable scenario that demonstrates the concept.',
+        'Frame the explanation through a real-world lens.',
+        'Connect the concept to everyday experiences.'
+      ],
+      eli5: [
+        'Use an analogy with toys, animals, or everyday objects.',
+        'Compare it to something from a child\'s daily life.',
+        'Use a simple story or scenario to explain.',
+        'Relate it to playing games or simple activities.'
+      ],
+      summarize: [
+        'Focus on the actionable takeaways.',
+        'Highlight the most surprising or important aspects.',
+        'Emphasize the practical implications.',
+        'Extract the core message or thesis.'
+      ],
+      keyPoints: [
+        'Prioritize by impact or importance.',
+        'Focus on what would be most useful to remember.',
+        'Extract both facts and insights.',
+        'Balance detail with clarity.'
+      ]
+    };
+    
+    const modeHints = hints[modeKey];
+    if (!modeHints) return null;
+    
+    // Return a random hint for variety
+    return modeHints[Math.floor(Math.random() * modeHints.length)];
   }
   
   /**

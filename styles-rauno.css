@@ -203,12 +203,52 @@
 /* ============================================
    MAIN POPUP - Premium Floating Card
    ============================================ */
+.bobby-fab-rauno {
+  position: fixed;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  /* Premium glass pill with accent ring */
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+  backdrop-filter: blur(var(--rauno-blur-sm)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--rauno-blur-sm)) saturate(120%);
+  border: 1px solid var(--rauno-border-subtle);
+  outline: 2px solid rgba(245, 158, 11, 0.18);
+  outline-offset: -2px;
+  color: var(--rauno-text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--rauno-shadow-lg);
+  transition: all var(--rauno-duration-fast) var(--rauno-ease-smooth);
+  opacity: 0;
+  transform: scale(0.9);
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.bobby-fab-rauno.bobby-show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bobby-fab-rauno:hover { transform: scale(1.05); box-shadow: var(--rauno-shadow-xl); }
+
+.bobby-fab-rauno:active {
+  transform: scale(0.95);
+}
+
 .bobby-popup-rauno {
   position: fixed;
   background: var(--rauno-bg-base);
+  /* Subtle background-only blur for weightless depth */
+  backdrop-filter: blur(var(--rauno-blur-md)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--rauno-blur-md)) saturate(120%);
   border: 1px solid var(--rauno-border-subtle);
-  border-radius: var(--rauno-radius-xl);
-  box-shadow: var(--rauno-shadow-2xl);
+  border-radius: var(--rauno-radius-lg);
+  box-shadow: var(--rauno-shadow-xl), var(--rauno-shadow-md);
   font-family: var(--rauno-font-sans);
   color: var(--rauno-text-primary);
   z-index: 2147483647;
@@ -223,7 +263,7 @@
   opacity: 0;
   transform: scale(0.96) translateY(10px);
   transform-origin: var(--origin-x, center) var(--origin-y, top);
-  animation: raunoPopupReveal var(--rauno-duration-moderate) var(--rauno-ease-smooth) forwards;
+  animation: raunoPopupReveal var(--rauno-duration-normal) var(--rauno-ease-smooth) forwards;
   
   /* Subtle grain texture */
   &::before {
@@ -449,12 +489,12 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--rauno-radius-sm);
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
   font-weight: 400;
   color: var(--rauno-text-tertiary);
@@ -466,7 +506,12 @@
   background: var(--rauno-bg-muted);
   border-color: var(--rauno-border-subtle);
   color: var(--rauno-text-primary);
-  transform: rotate(90deg) scale(1.1);
+  transform: scale(1.06);
+}
+
+.bobby-close-rauno:focus-visible {
+  outline: 2px solid var(--rauno-accent-500);
+  outline-offset: 2px;
 }
 
 /* ============================================
@@ -487,13 +532,14 @@
   border-radius: var(--rauno-radius-lg);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(var(--rauno-blur-sm));
 }
 
 /* Mode buttons - Segmented control style */
 .bobby-mode-btn-rauno {
   flex: 1;
-  padding: var(--rauno-space-1-5) var(--rauno-space-3);
-  min-height: 32px;
+  padding: var(--rauno-space-2) var(--rauno-space-3);
+  min-height: 40px;
   background: transparent;
   border: none;
   border-radius: calc(var(--rauno-radius-lg) - 3px);
@@ -520,6 +566,11 @@
     var(--rauno-shadow-sm),
     0 0 0 1px var(--rauno-border-subtle);
   font-weight: 600;
+}
+
+.bobby-mode-btn-rauno:focus-visible {
+  outline: 2px solid var(--rauno-accent-500);
+  outline-offset: 2px;
 }
 
 /* Sliding indicator effect */
@@ -757,7 +808,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   
   /* Smooth entrance */
-  animation: raunoAnalysisReveal var(--rauno-duration-moderate) var(--rauno-ease-smooth);
+  animation: raunoAnalysisReveal var(--rauno-duration-normal) var(--rauno-ease-smooth);
 }
 
 @keyframes raunoAnalysisReveal {
@@ -818,10 +869,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.045),
     transparent
   );
-  animation: raunoShimmer 1.5s ease-in-out infinite;
+  animation: raunoShimmer 1.2s ease-in-out infinite;
 }
 
 /* Varying widths for organic feel */
@@ -1041,16 +1092,16 @@
   display: flex;
   gap: var(--rauno-space-2);
   align-items: center;
-  background: var(--rauno-bg-secondary);
-  border: 1px solid var(--rauno-border);
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  backdrop-filter: blur(var(--rauno-blur-sm));
+  -webkit-backdrop-filter: blur(var(--rauno-blur-sm));
+  border: 1px solid var(--rauno-border-subtle);
   border-radius: var(--rauno-radius-md);
   padding: var(--rauno-space-1);
+  box-shadow: var(--rauno-shadow-xs), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
-.bobby-followup-input-group:focus-within {
-  border-color: var(--rauno-accent);
-  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.1);
-}
+.bobby-followup-input-group:focus-within { border-color: var(--rauno-accent-400); box-shadow: 0 0 0 2px rgba(251,146,60,0.10); }
 
 .bobby-followup-input-field {
   flex: 1;
@@ -1078,7 +1129,7 @@
   height: 32px;
   border: none;
   border-radius: var(--rauno-radius-sm);
-  background: var(--rauno-bg-tertiary);
+  background: rgba(255,255,255,0.04);
   color: var(--rauno-text-secondary);
   cursor: pointer;
   transition: all var(--rauno-duration-fast) ease;
@@ -1088,20 +1139,14 @@
   font-size: var(--rauno-text-base);
 }
 
-.bobby-followup-submit-btn {
-  background: var(--rauno-accent);
-  color: white;
-}
+.bobby-followup-submit-btn { background: var(--rauno-accent); color: white; box-shadow: var(--rauno-shadow-sm); }
 
 .bobby-followup-submit-btn:hover {
   background: var(--rauno-accent-hover);
   transform: scale(1.05);
 }
 
-.bobby-followup-cancel-btn:hover {
-  background: var(--rauno-bg-secondary);
-  color: var(--rauno-text-primary);
-}
+.bobby-followup-cancel-btn:hover { background: rgba(255,255,255,0.08); color: var(--rauno-text-primary); }
 
 /* ============================================
    SELECTED CONTEXT - Elegant Display

@@ -789,12 +789,14 @@ class ButtonManager {
    */
   createRaunoModeSelector(modes, activeMode) {
     const container = document.createElement('div');
-    container.className = 'bobby-modes-rauno';
+    container.className = 'bobby-modes-rauno bobby-stagger-in';
     
     modes.forEach((mode, index) => {
       const button = document.createElement('button');
       button.className = mode.id === activeMode ? 'bobby-mode-btn-rauno active' : 'bobby-mode-btn-rauno';
       button.dataset.mode = mode.id;
+      // Mark as high-frequency to skip heavy animations
+      button.dataset.highfreq = 'true';
       
       // Use text for clearer Swiss design (icons are secondary)
       button.innerHTML = `

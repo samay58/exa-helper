@@ -1,149 +1,98 @@
-# Bobby - AI Text Assistant Chrome Extension
+# Bobby - AI Text Analysis Chrome Extension
 
-Bobby is a beautiful Chrome extension that provides instant AI-powered insights for any text you highlight on the web. With a modern, draggable interface inspired by leading design systems, Bobby transforms how you read and understand content online.
+## What it is
 
-## ✨ Features
+Bobby is a Chrome extension that provides instant AI-powered text analysis. Highlight any text on a webpage or PDF to get explanations, summaries, key points, and fact-checking powered by Claude 3.5 Sonnet, OpenAI GPT, and Exa search.
 
-- **Instant Analysis**: Highlight any text and get immediate AI-powered insights
-- **Dual AI Support**: Works with both Anthropic Claude 3.5 Sonnet and OpenAI GPT models
-- **Multiple Analysis Modes**:
-  - 💡 **Explain**: Clear explanations of complex concepts
-  - 📝 **Summarize**: Concise summaries of content
-  - 🔑 **Key Points**: Extract main ideas
-  - 👶 **ELI5**: Explain Like I'm 5
-  - 🔧 **Technical**: In-depth technical analysis
-  - 📚 **Examples**: Relevant examples and use cases
-  - ⚖️ **Pros & Cons**: Balanced analysis
-  - ✓ **Fact Check**: Verify claims with sources
+## Quick start
 
-- **Beautiful UI**:
-  - Modern design inspired by Antinote, Warp, ChatGPT, and Claude.ai
-  - Draggable and resizable popup window
-  - Smooth animations and micro-interactions
-  - Full dark mode support
-  - Translucent backgrounds with blur effects
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/bobby-extension.git
+cd bobby-extension
 
-- **Smart Features**:
-  - Response caching to save API costs
-  - History tracking
-  - PDF support
-  - Keyboard shortcuts
-  - Cross-site compatibility
+# Copy config template
+cp config.example.js config.js
 
-## 🚀 Installation
+# Add your API keys to config.js:
+# - ANTHROPIC_API_KEY (recommended) or OPENAI_API_KEY
+# - EXA_API_KEY for fact-checking
+# - Optional: PERPLEXITY_API_KEY
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/bobby-extension.git
-   cd bobby-extension
-   ```
-
-2. **Set up API keys**:
-   - Copy `config.example.js` to `config.js`
-   - Add your API keys:
-     - [Anthropic API Key](https://console.anthropic.com/) (recommended - Claude 3.5 Sonnet)
-     - [OpenAI API Key](https://platform.openai.com/api-keys) (fallback option)
-     - [Exa API Key](https://exa.ai) (optional, for fact-checking)
-     - [Perplexity API Key](https://perplexity.ai) (optional, for research)
-   - Set `USE_ANTHROPIC: true` to use Claude (avoids rate limits)
-
-3. **Load the extension in Chrome**:
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode" (top right)
-   - Click "Load unpacked"
-   - Select the extension directory
-
-4. **Enable PDF support** (optional):
-   - In Chrome extensions settings, enable "Allow access to file URLs" for Bobby
-
-## 📖 How to Use
-
-1. **Highlight any text** on a webpage or PDF
-2. **Click the Bobby button** (✨) that appears near your selection
-3. **Choose an analysis mode** from the prompt bar
-4. **Read the AI-generated insights** in the beautiful popup window
-5. **Drag to reposition** or resize the window as needed
-6. **Use follow-up questions** for deeper understanding
-
-## ⌨️ Keyboard Shortcuts
-
-- `Alt + B` - Analyze selected text
-- `Esc` - Close Bobby popup
-- `Tab` - Navigate between modes
-- `Enter` - Confirm selection
-
-## 🛠️ Configuration
-
-Access Bobby's settings by:
-1. Clicking the Bobby extension icon
-2. Selecting "Configure API Keys"
-
-Settings include:
-- API key management
-- Theme preferences (Light/Dark/Auto)
-- Maximum text length
-- History tracking toggle
-- Response caching options
-
-## 🏗️ Architecture
-
-Bobby is built with a modular architecture:
-
-```
-bobby-extension/
-├── manifest.json          # Chrome extension manifest
-├── background.js          # Service worker for API requests
-├── content.js            # UI injection and interactions
-├── styles.css            # Modern design system
-├── components/modules/   # Reusable modules
-│   ├── PromptManager.js  # Prompt templates
-│   ├── APIClient.js      # API communications
-│   └── UIComponents.js   # UI elements
-└── pages/               # Extension pages
-    ├── popup.html       # Extension popup
-    └── options.html     # Settings page
+# Load extension in Chrome:
+1. Open chrome://extensions/
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the extension directory
+5. For PDFs: Enable "Allow access to file URLs"
 ```
 
-## 🎨 Design System
+## Features
 
-Bobby's UI is inspired by:
-- **Antinote**: Minimal, warm aesthetics
-- **Warp Terminal**: Modern, translucent interfaces
-- **ChatGPT**: Clean, friendly interactions
-- **Claude.ai**: Frosted glass effects
-- **Spark Email**: Vibrant accent colors
+- **Explain** - Get clear explanations of complex text
+- **Summarize** - Quick summaries of long content
+- **Key Points** - Extract main ideas
+- **Simplify** - Make text easier to understand
+- **Pros & Cons** - Analyze advantages and disadvantages
+- **Fact Check** - Verify claims with web sources via Exa
+- **Follow-up** - Ask questions about the selected text
+- **History** - Track your analysis sessions
 
-Color palette:
-- Warm gradient: `#FF9472 → #F2709C`
-- Dark mode: Deep purples and charcoal
-- Translucent backgrounds with backdrop blur
+## Configuration
 
-## 🔒 Privacy & Security
+Edit `config.js` to customize:
 
-- API keys are stored locally in your browser
-- No data is sent to external servers except API providers
-- No tracking or analytics
-- All communications over HTTPS
+- **API Provider**: Set `USE_ANTHROPIC: true` for Claude (recommended for rate limits)
+- **UI Settings**: Theme, popup width, animation speed
+- **Feature Flags**: Enable glassmorphism UI, particle effects, context-aware buttons
+- **Max text length**: Default 5000 characters
 
-## 🤝 Contributing
+## Usage
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
+1. Select any text on a webpage or PDF
+2. Bobby popup appears with action buttons
+3. Click an action to analyze the text
+4. Drag popup to reposition
+5. Click star to save to history
+6. Use fullscreen mode for longer content
 
-## 📝 License
+## API Keys
 
-MIT License - see LICENSE file for details
+Get your keys from:
+- [Anthropic Console](https://console.anthropic.com/) - For Claude
+- [OpenAI Platform](https://platform.openai.com/) - For GPT
+- [Exa.ai](https://exa.ai) - For fact-checking
 
-## 🙏 Acknowledgments
+## Keyboard Shortcuts
 
-- OpenAI for GPT API
-- Exa for fact-checking capabilities
-- The design teams behind our UI inspirations
+- `Esc` - Close popup
+- Click outside popup to dismiss
 
----
+## Development
 
-Made with ❤️ for better web reading
+The extension uses Manifest V3 and requires no build step. Structure:
+
+- `background.js` - Service worker for API calls
+- `content.js` - Content script for UI
+- `components/modules/` - Modular functionality
+- `styles-v2.css` - Modern glassmorphism styles
+- `pages/` - Extension pages (history, options, popup)
+
+## Privacy
+
+- API keys stored locally in `config.js`
+- No telemetry or tracking
+- History stored in Chrome local storage
+- All API calls made from background script
+
+## Troubleshooting
+
+- Check API keys in `config.js`
+- View console for errors (F12)
+- Check service worker logs in chrome://extensions/
+- Ensure "Allow access to file URLs" for PDFs
+- Try `USE_ANTHROPIC: false` if rate limited
+
+## License
+
+MIT

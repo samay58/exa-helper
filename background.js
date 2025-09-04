@@ -86,13 +86,26 @@ async function loadConfig() {
 chrome.runtime.onInstalled.addListener(async () => {
   await loadConfig();
   console.log('Bobby Extension installed successfully');
-  
-  // Create context menu item
-  chrome.contextMenus.create({
-    id: 'bobby-analyze',
-    title: 'Analyze with Bobby',
-    contexts: ['selection']
-  });
+
+  // Create context menu item safely (avoid duplicate id errors on reloads)
+  try {
+    chrome.contextMenus.remove('bobby-analyze');
+  } catch (_) {
+    // ignore if not present
+  }
+  try {
+    chrome.contextMenus.create({
+      id: 'bobby-analyze',
+      title: 'Analyze with Bobby',
+      contexts: ['selection']
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('Bobby: context menu create warning:', chrome.runtime.lastError.message);
+      }
+    });
+  } catch (e) {
+    console.warn('Bobby: context menu create failed:', e?.message || e);
+  }
 });
 
 // Handle context menu clicks
@@ -614,7 +627,7 @@ function generatePrompt(text, mode) {
   const useAnthropic = CONFIG?.USE_ANTHROPIC;
   
   const prompts = {
-    explain: `${useAnthropic ? '' : 'Explain the following text in clear, simple terms:\n\n'}"${text}"`,
+    explain: `Explain in 2-3 short sentences (<=50 words). Start with "It's like ..." then say what it does; optionally give one everyday example. Use only common words a 10-year-old knows.\n\n"${text}"`,
     summarize: `${useAnthropic ? 'Summarize: ' : 'Provide a concise summary of the following text:\n\n'}"${text}"`,
     keyPoints: `${useAnthropic ? 'Key points from: ' : 'Extract and list the key points from the following text:\n\n'}"${text}"`,
     eli5: `${useAnthropic ? 'Using only simple words a 5-year-old would understand, explain: ' : 'Explain the following text as if I\'m 5 years old:\n\n'}"${text}"`,

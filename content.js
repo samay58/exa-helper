@@ -230,7 +230,8 @@ function showFAB(x, y) {
 function createFAB() {
   fabButton = document.createElement('button');
   const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
-  fabButton.className = useV2 ? 'bobby-fab-v2' : 'bobby-fab';
+  const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
+  fabButton.className = useRauno ? 'bobby-fab-rauno' : (useV2 ? 'bobby-fab-v2' : 'bobby-fab');
   fabButton.innerHTML = '✨';
   fabButton.title = 'Analyze with Bobby (Alt+B)';
   
@@ -255,7 +256,9 @@ function createFAB() {
     });
   }
   
-  document.body.appendChild(fabButton);
+  if (document.body) {
+    document.body.appendChild(fabButton);
+  }
   
   // Apply adaptive theme if enabled
   if (themeManager && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_ADAPTIVE_THEME) {
@@ -453,9 +456,9 @@ async function showPopup() {
     }
   }
   
-  // Setup drag manager first
+  // Setup drag manager first (use header as handle in RAUNO mode)
   dragManager = new window.DragManager(popupWindow, {
-    handle: '.bobby-drag-handle',
+    handle: useRauno ? '.bobby-header-rauno' : '.bobby-drag-handle',
     snapToEdge: true,
     momentum: true,
     onDragEnd: () => dragManager.savePosition()
@@ -712,9 +715,11 @@ function setupPopupEvents() {
     });
   }
   
-  // Make resizable
+  // Make resizable (only if handle exists in this mode)
   const resizeHandle = popupWindow.querySelector('.bobby-resize-handle');
-  resizeHandle.addEventListener('mousedown', startResizing);
+  if (resizeHandle) {
+    resizeHandle.addEventListener('mousedown', startResizing);
+  }
   
   // Global functions for buttons
   window.bobbyFollowUp = showFollowUpInput;
@@ -859,32 +864,14 @@ async function showFactCheckView() {
   const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
   const ui = new window.UIComponents();
   
-  // Show loading state with skeleton loaders
+  // Show simplified loading state
   resultDiv.innerHTML = `
-    <div class="bobby-fact-check-header">
-      <span class="bobby-exa-badge">🔍</span>
-      <h4>Fact Checking with Exa</h4>
-    </div>
-    <div class="bobby-fact-check-progress">
-      <div class="bobby-progress-header">
-        <h5 class="bobby-progress-title">Extracting claims...</h5>
-        <span class="bobby-progress-count">
-          <div class="bobby-skeleton-confidence" style="display: inline-block;"></div>
-        </span>
+    <div class="bobby-fc-loading">
+      <div class="bobby-fc-loading-icon">🔍</div>
+      <div class="bobby-fc-loading-text">Checking facts...</div>
+      <div class="bobby-fc-loading-bar">
+        <div class="bobby-fc-loading-progress"></div>
       </div>
-      <div class="bobby-progress-status">Analyzing text for verifiable claims...</div>
-    </div>
-    <div class="bobby-fact-check-skeleton">
-      ${[1,2,3].map(() => `
-        <div class="bobby-skeleton-claim">
-          <div class="bobby-skeleton-header">
-            <div class="bobby-skeleton-status"></div>
-            <div class="bobby-skeleton-confidence"></div>
-          </div>
-          <div class="bobby-skeleton-text"></div>
-          <div class="bobby-skeleton-text short"></div>
-        </div>
-      `).join('')}
     </div>
   `;
   
@@ -910,22 +897,15 @@ async function showFactCheckView() {
       return;
     }
     
-    // Update UI to show streamlined progress
+    // Update UI to show clean progress
     resultDiv.innerHTML = `
-      <div class="bobby-fact-check-modern">
-        <div class="bobby-fc-header">
-          <span class="bobby-fc-icon">🔍</span>
-          <span class="bobby-fc-title">Fact Checking</span>
+      <div class="bobby-fc-loading">
+        <div class="bobby-fc-loading-icon">🔍</div>
+        <div class="bobby-fc-loading-text">Verifying ${claims.length} claim${claims.length > 1 ? 's' : ''}...</div>
+        <div class="bobby-fc-loading-bar">
+          <div class="bobby-fc-loading-progress" style="width: 0%"></div>
         </div>
-        <div class="bobby-fc-progress">
-          <div class="bobby-fc-status">
-            <span class="bobby-fc-dots">●●●</span>
-            <span class="bobby-fc-counter">Checking 1/${claims.length}</span>
-          </div>
-          <div class="bobby-fc-bar">
-            <div class="bobby-fc-bar-fill" style="width: 0%"></div>
-          </div>
-        </div>
+        <div class="bobby-fc-loading-counter">0 / ${claims.length}</div>
       </div>
     `;
     
@@ -935,14 +915,14 @@ async function showFactCheckView() {
       const claim = claims[i];
       const progress = Math.round(((i + 1) / claims.length) * 100);
       
-      // Update streamlined progress
-      const progressBar = resultDiv.querySelector('.bobby-fc-bar-fill');
-      const progressCounter = resultDiv.querySelector('.bobby-fc-counter');
+      // Update clean progress
+      const progressBar = resultDiv.querySelector('.bobby-fc-loading-progress');
+      const progressCounter = resultDiv.querySelector('.bobby-fc-loading-counter');
       if (progressBar) {
         progressBar.style.width = `${progress}%`;
       }
       if (progressCounter) {
-        progressCounter.textContent = `Checking ${i + 1}/${claims.length}`;
+        progressCounter.textContent = `${i + 1} / ${claims.length}`;
       }
       
       // Always await the verification (it now handles errors internally)
@@ -1021,67 +1001,62 @@ function displayFactCheckResults(results) {
   const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
   const ui = new window.UIComponents();
   
-  // Calculate score status and label based on reliability
-  const scoreStatus = results.overallScore >= 80 ? 'excellent' : 
-                      results.overallScore >= 60 ? 'good' : 
-                      results.overallScore >= 40 ? 'fair' : 'poor';
+  // Determine verdict based on results
+  const hasIssues = results.summary.false > 0 || results.summary.misleading > 0;
+  const hasUncertain = results.summary.unverifiable > 0;
   
-  const scoreLabel = results.overallScore >= 80 ? 'Excellent' : 
-                     results.overallScore >= 60 ? 'Good' : 
-                     results.overallScore >= 40 ? 'Fair' : 'Poor';
+  const verdictIcon = hasIssues ? '❌' : hasUncertain ? '⚠️' : '✅';
+  const verdictText = hasIssues ? 'Issues Found' : hasUncertain ? 'Uncertain' : 'Verified';
+  const verdictClass = hasIssues ? 'error' : hasUncertain ? 'warning' : 'success';
   
   const summaryHtml = `
-    <div class="bobby-fc-results">
-      <div class="bobby-fc-reliability">
-        <div class="bobby-fc-ring bobby-fc-ring-${scoreStatus}" data-score="${results.overallScore}">
-          <svg class="bobby-fc-ring-svg" viewBox="0 0 120 120">
-            <circle class="bobby-fc-ring-bg" cx="60" cy="60" r="54"/>
-            <circle class="bobby-fc-ring-progress" cx="60" cy="60" r="54" 
-                    style="stroke-dasharray: ${339.3 * (results.overallScore / 100)} 339.3"/>
-          </svg>
-          <div class="bobby-fc-ring-content">
-            <span class="bobby-fc-score">${results.overallScore}%</span>
-            <span class="bobby-fc-label">${scoreLabel}</span>
-          </div>
+    <div class="bobby-fc-container">
+      <!-- Hero Section -->
+      <div class="bobby-fc-hero">
+        <div class="bobby-fc-verdict bobby-fc-verdict-${verdictClass}">
+          <span class="bobby-fc-verdict-icon">${verdictIcon}</span>
+          <span class="bobby-fc-verdict-text">${verdictText}</span>
         </div>
+        <div class="bobby-fc-confidence">${results.overallScore}% confidence</div>
       </div>
-      <div class="bobby-fc-stats">
-        ${results.summary.true > 0 ? `
-        <div class="bobby-fc-stat bobby-fc-stat-true">
-          <span class="bobby-fc-stat-icon">✓</span>
-          <span class="bobby-fc-stat-count">${results.summary.true}</span>
-          <span class="bobby-fc-stat-label">TRUE</span>
-        </div>` : ''}
-        ${results.summary.false > 0 ? `
-        <div class="bobby-breakdown-item bobby-breakdown-false">
-          <span class="bobby-breakdown-icon">✗</span>
-          <span class="bobby-breakdown-count">${results.summary.false}</span>
-          <span class="bobby-breakdown-label">False</span>
-        </div>` : ''}
-        ${results.summary.partially_true > 0 ? `
-        <div class="bobby-fc-stat bobby-fc-stat-partial">
-          <span class="bobby-fc-stat-icon">≈</span>
-          <span class="bobby-fc-stat-count">${results.summary.partially_true}</span>
-          <span class="bobby-fc-stat-label">PARTIAL</span>
-        </div>` : ''}
-        ${results.summary.unverifiable > 0 ? `
-        <div class="bobby-breakdown-item bobby-breakdown-unverifiable">
-          <span class="bobby-breakdown-icon">?</span>
-          <span class="bobby-breakdown-count">${results.summary.unverifiable}</span>
-          <span class="bobby-breakdown-label">Unverifiable</span>
-        </div>` : ''}
-        ${results.summary.needs_context > 0 ? `
-        <div class="bobby-breakdown-item bobby-breakdown-context">
-          <span class="bobby-breakdown-icon">⚡</span>
-          <span class="bobby-breakdown-count">${results.summary.needs_context}</span>
-          <span class="bobby-breakdown-label">Contextual</span>
-        </div>` : ''}
-        ${results.summary.error > 0 ? `
-        <div class="bobby-breakdown-item bobby-breakdown-error">
-          <span class="bobby-breakdown-icon">⚠</span>
-          <span class="bobby-breakdown-count">${results.summary.error}</span>
-          <span class="bobby-breakdown-label">Error</span>
-        </div>` : ''}
+      
+      <!-- Claims List -->
+      <div class="bobby-fc-claims">
+        ${results.verifications.map((v) => {
+          const statusIcon = getStatusIcon(v.assessment);
+          const statusClass = v.assessment === 'true' ? 'success' : 
+                              v.assessment === 'false' || v.assessment === 'misleading' ? 'error' : 
+                              'warning';
+          
+          // Get first source for citation
+          let sourceLink = '';
+          if (v.sources && v.sources.length > 0) {
+            try {
+              const domain = new URL(v.sources[0].url).hostname.replace('www.', '');
+              sourceLink = `<a class="bobby-fc-source" href="${v.sources[0].url}" target="_blank">Source: ${domain} ↗</a>`;
+            } catch (e) {
+              sourceLink = '';
+            }
+          }
+          
+          return `
+            <div class="bobby-fc-claim bobby-fc-claim-${statusClass}">
+              <span class="bobby-fc-status">${statusIcon}</span>
+              <span class="bobby-fc-text">${escapeHtml(v.claim)}</span>
+              ${sourceLink}
+            </div>
+          `;
+        }).join('')}
+      </div>
+      
+      <!-- Disclaimer -->
+      <div class="bobby-fc-note">
+        <span class="bobby-fc-note-icon">ℹ️</span>
+        <span class="bobby-fc-note-text">This automated check compares claims against web sources. Always verify critical information independently.</span>
+      </div>
+      
+      <div class="bobby-fc-meta">
+        Based on ${results.verifications.reduce((acc, v) => acc + (v.sources?.length || 0), 0)} web sources
       </div>
     </div>
   `;
@@ -1137,23 +1112,8 @@ function displayFactCheckResults(results) {
     `;
   }).join('');
   
-  resultDiv.innerHTML = `
-    <div class="bobby-fact-check-container-v2">
-      <div class="bobby-fact-check-header-v2">
-        <h4 class="bobby-fact-check-title">Fact Check Analysis</h4>
-        <div class="bobby-exa-badge-v2">
-          <span>Powered by Exa</span>
-        </div>
-      </div>
-      ${summaryHtml}
-      <div class="bobby-claims-section-v2">
-        <h5 class="bobby-claims-title-v2">Claims Analysis</h5>
-        <div class="bobby-claims-list-v2">
-          ${claimsHtml}
-        </div>
-      </div>
-    </div>
-  `;
+  // Display simplified fact-check results
+  resultDiv.innerHTML = summaryHtml;
   
   // Save fact check results to history
   window.HistoryManager.addToHistory(
@@ -1486,12 +1446,30 @@ function displayResult(result, fromCache = false) {
   }
   
   const ui = new window.UIComponents();
+
+  // Fallback guardrail: enforce brevity for Explain mode (<= 50 words)
+  function enforceExplainWordLimit(text, maxWords = 50) {
+    try {
+      if (currentMode !== 'explain' || !text || typeof text !== 'string') return text;
+      const cleaned = text
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const words = cleaned.split(/\s+/);
+      if (words.length <= maxWords) return cleaned;
+      return words.slice(0, maxWords).join(' ') + '…';
+    } catch (_) {
+      return text;
+    }
+  }
+  const finalResult = enforceExplainWordLimit(result, 50);
   
   if (useRauno) {
     resultDiv.innerHTML = `
       <div class="bobby-analysis-rauno">
         ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
-        <div class="bobby-markdown-rauno">${ui.markdownToHtml(result)}</div>
+        <div class="bobby-markdown-rauno">${ui.markdownToHtml(finalResult)}</div>
       </div>
       <div class="bobby-followup-section">
         <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
@@ -1507,7 +1485,7 @@ function displayResult(result, fromCache = false) {
     resultDiv.innerHTML = `
       <div class="${analysisClass}">
         ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
-        <div class="${markdownClass}">${ui.markdownToHtml(result)}</div>
+        <div class="${markdownClass}">${ui.markdownToHtml(finalResult)}</div>
       </div>
       <div class="bobby-followup-section">
         <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
