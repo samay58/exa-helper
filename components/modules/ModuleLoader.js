@@ -6,12 +6,14 @@
 
   // Initialize modules when DOM is ready
   async function initializeModules() {
-    console.log('Bobby: Initializing module system...');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Initializing module system...');
     
     // Check config is available
     if (!window.BOBBY_CONFIG) {
-      console.error('Bobby: Critical error - BOBBY_CONFIG not found');
-      console.error('Bobby: Extension will not function without proper config.js');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) {
+        console.error('Bobby: Critical error - BOBBY_CONFIG not found');
+        console.error('Bobby: Extension will not function without proper config.js');
+      }
       
       window.dispatchEvent(new CustomEvent('bobby-modules-error', { 
         detail: { error: 'BOBBY_CONFIG not found' } 
@@ -19,7 +21,7 @@
       return;
     }
     
-    console.log('Bobby: Config verified, BOBBY_CONFIG available');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Config verified, BOBBY_CONFIG available');
     
     // List of required modules - these should already be loaded by manifest.json
     const requiredModules = [
@@ -34,17 +36,19 @@
     
     for (const moduleName of requiredModules) {
       if (!window[moduleName]) {
-        console.error(`Bobby: Module ${moduleName} not available`);
+        if (window.BOBBY_CONFIG?.DEBUG_MODE) console.error(`Bobby: Module ${moduleName} not available`);
         missingModules.push(moduleName);
         allModulesAvailable = false;
       } else {
-        console.log(`Bobby: Module ${moduleName} verified`);
+        if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log(`Bobby: Module ${moduleName} verified`);
       }
     }
     
     if (!allModulesAvailable) {
-      console.error('Bobby: Missing modules:', missingModules);
-      console.error('Bobby: Some features may not work properly');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) {
+        console.error('Bobby: Missing modules:', missingModules);
+        console.error('Bobby: Some features may not work properly');
+      }
       
       window.dispatchEvent(new CustomEvent('bobby-modules-error', { 
         detail: { 
@@ -55,26 +59,96 @@
       return;
     }
     
-    console.log('Bobby: All modules verified and available');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: All modules verified and available');
+
+    // Conditionally load optional modules only when corresponding flags are enabled
+    await loadOptionalModules();
     
     // Initialize global API functions
     try {
       initializeGlobalAPIs();
-      console.log('Bobby: Global APIs initialized');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Global APIs initialized');
     } catch (error) {
-      console.error('Bobby: Error initializing APIs:', error);
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.error('Bobby: Error initializing APIs:', error);
     }
     
     // Dispatch event to notify that modules are ready
     window.dispatchEvent(new CustomEvent('bobby-modules-ready'));
-    console.log('Bobby: Module system ready');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Module system ready');
+  }
+
+  // Determine minimal mode
+  function isMinimal() {
+    try {
+      const flags = window.BOBBY_CONFIG && window.BOBBY_CONFIG.FEATURE_FLAGS;
+      if (!flags || flags.MINIMAL_MODE === undefined) return true;
+      return !!flags.MINIMAL_MODE;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  // Dynamically load a module script if not already present
+  function loadScript(relativePath) {
+    return new Promise((resolve, reject) => {
+      const url = chrome.runtime.getURL(relativePath);
+      // Avoid duplicate loads
+      if (document.querySelector(`script[data-bobby-module="${relativePath}"]`)) return resolve();
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.defer = true;
+      script.dataset.bobbyModule = relativePath;
+      script.onload = () => resolve();
+      script.onerror = (e) => reject(new Error(`Failed to load ${relativePath}`));
+      (document.head || document.documentElement).appendChild(script);
+    });
+  }
+
+  // Load optional modules based on feature flags (skips in minimal mode)
+  async function loadOptionalModules() {
+    const flags = window.BOBBY_CONFIG?.FEATURE_FLAGS || {};
+    if (isMinimal()) {
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Minimal mode enabled; skipping optional modules');
+      return;
+    }
+    // Build file list to inject via background (MV3-safe)
+    const files = [];
+    if (flags.USE_CONTEXT_AWARE) {
+      if (!window.ContentAnalyzer) files.push('components/modules/ContentAnalyzer.js');
+      if (!window.ContextActions) files.push('components/modules/ContextActions.js');
+    }
+    if (flags.USE_PARTICLE_EFFECTS && !window.ParticleEffects) {
+      files.push('components/modules/ParticleEffects.js');
+    }
+    if (flags.USE_SPRING_ANIMATIONS && !window.InteractionEffects) {
+      files.push('components/modules/InteractionEffects.js');
+    }
+    if (flags.USE_ADAPTIVE_THEME && !window.ThemeManager) {
+      files.push('components/modules/ThemeManager.js');
+    }
+    if (flags.RAUNO_MODE) {
+      if (!window.RaunoEffects) files.push('components/modules/RaunoEffects.js');
+      if (!window.GridSystem) files.push('components/modules/GridSystem.js');
+    }
+    if (!files.length) return;
+    try {
+      const resp = await chrome.runtime.sendMessage({ action: 'loadOptionalModules', files });
+      if (!resp?.success) {
+        if (window.BOBBY_CONFIG?.DEBUG_MODE) console.warn('Bobby: Optional module injection reported failure:', resp?.error);
+      } else if (window.BOBBY_CONFIG?.DEBUG_MODE) {
+        console.log(`Bobby: Injected ${resp.injected || files.length} optional modules`);
+      }
+    } catch (e) {
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.warn('Bobby: Optional module injection failed:', e?.message || e);
+    }
   }
 
   // Initialize global API functions for backward compatibility
   function initializeGlobalAPIs() {
     // Make sure we have the config
     if (!window.BOBBY_CONFIG) {
-      console.error('Bobby: Config not loaded');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.error('Bobby: Config not loaded');
       return;
     }
 
@@ -97,7 +171,7 @@
           }]
         };
       } catch (error) {
-        console.error('Error calling OpenAI:', error);
+        if (window.BOBBY_CONFIG?.DEBUG_MODE) console.error('Error calling OpenAI:', error);
         throw error;
       }
     };
@@ -107,7 +181,7 @@
         const result = await apiClient.queryPerplexity(query);
         return result;
       } catch (error) {
-        console.error('Error calling Perplexity:', error);
+        if (window.BOBBY_CONFIG?.DEBUG_MODE) console.error('Error calling Perplexity:', error);
         throw error;
       }
     };
@@ -185,7 +259,7 @@
       HallucinationDetector: window.HallucinationDetector
     };
 
-    console.log('Bobby: Global APIs initialized');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Global APIs initialized');
   }
 
   // Initialize modules immediately since they're pre-loaded by manifest

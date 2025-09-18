@@ -6,42 +6,66 @@ class PromptManager {
     // Check if context-aware mode is enabled
     this.useContextAware = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_CONTEXT_AWARE || false;
     
+    // Disable context-aware in minimal mode to avoid loading heavy modules
+    if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.MINIMAL_MODE) {
+      this.useContextAware = false;
+    }
+    
     // Initialize ContentAnalyzer and ContextActions if available
     if (this.useContextAware && window.ContentAnalyzer && window.ContextActions) {
       this.contentAnalyzer = new window.ContentAnalyzer();
       this.contextActions = new window.ContextActions();
     }
+    // If modules are missing, gracefully disable context-aware
+    if (this.useContextAware && (!this.contentAnalyzer || !this.contextActions)) {
+      this.useContextAware = false;
+    }
+    
+    // Global style guardrails to avoid rigid, robotic outputs
+    this.styleGuardrails = [
+      'Lead immediately with the core insight; no throat-clearing.',
+      "Avoid generic openers like 'This passage…', 'The author…', 'In this text…', and filler like 'Okay,' 'Let\'s imagine…', or 'Imagine…'.",
+      "Don't restate the prompt or describe your steps.",
+      'Keep it tight and natural; only as long as needed for clarity.',
+      'Use at most one quick analogy or example if it helps—keep it short.',
+      'Prefer one short paragraph; use a short bullet list only if it adds clarity.',
+      'No headings unless clearly helpful; avoid boilerplate transitions like “In conclusion”.',
+      'Avoid baby talk; be friendly and direct.',
+      'Use concrete verbs and specifics; avoid hedging like "seems", "maybe", or "likely" unless truly warranted.',
+      'Write with energy and specificity; avoid bland generalities.',
+      'End with a complete sentence; do not end with trailing ellipses (…).'
+    ].join(' ');
     this.modes = {
       explain: {
         name: 'Explain',
         icon: '💡',
-        description: 'Analogy-first, 2–3 short sentences',
-        systemPrompt: 'You explain like a friendly neighbor, not a professor. Use only common words a 10-year-old knows. Maximum 2–3 short sentences. First: simple "It\'s like …" analogy. Second: what it actually does. Third (optional): one everyday example. Stay under 50 words total.',
-        userPrompt: (text) => `Explain in 2–3 short sentences (max 50 words). Start with "It\'s like …", then say what it does; optionally give one everyday example:\n\n"${text}"\n\nKeep it plain, concrete, and skimmable.`
+        description: 'Clear, intuitive explanation',
+        systemPrompt: `You're a brilliant explainer who makes complex ideas click instantly. Your explanations are crisp, memorable, and feel like "aha!" moments. Use vivid analogies when they help, concrete examples when needed, and always focus on the core insight. Keep it conversational but insightful - like that friend who always explains things perfectly.`,
+        userPrompt: (text) => `Give me a clear, intuitive explanation of this concept. Focus on making it truly click for me - what's the key insight here? If an analogy helps, use one. If an example clarifies, include it. Just make it memorable and immediately understandable:\n\n"${text}"`
       },
       
       summarize: {
         name: 'Summarize',
         icon: '📝',
         description: 'Concise summary of content',
-        systemPrompt: 'You create extremely concise summaries using bullet points for clarity. Maximum 3 key points, each under 15 words. Focus only on the most essential information. No preamble or conclusion.',
-        userPrompt: (text) => `Summarize in exactly 3 bullet points (max 15 words each):\n\n"${text}"\n\nFormat:\n• [Most important point]\n• [Second key point]\n• [Third essential point]`
+        systemPrompt: `You create sharp, scannable summaries that capture what actually matters. You have a gift for distilling complexity into clarity without losing nuance. Your summaries feel complete yet effortless to read - never bloated, never missing the point.`,
+        userPrompt: (text) => `Summarize this content, capturing the essential points and main thrust. Be concise but complete - give me exactly what I need to understand what this is about:\n\n"${text}"`
       },
       
       keyPoints: {
         name: 'Key Points',
         icon: '🔑',
         description: 'Extract main ideas',
-        systemPrompt: 'You extract only the most crucial points. Maximum 5 points. Each point must be one complete sentence under 20 words. Be extremely selective - quality over quantity.',
-        userPrompt: (text) => `List the 3-5 most important points (one sentence each, under 20 words):\n\n"${text}"\n\nFormat:\n1. [First key point]\n2. [Second key point]\n3. [Third key point]`
+        systemPrompt: `You have a laser focus for what truly matters. You extract the core ideas that someone would highlight or remember - the insights that change understanding, the facts that drive decisions, the concepts that everything else builds on.`,
+        userPrompt: (text) => `Extract the key points from this text - the ideas that matter most, the insights worth remembering, the core facts or arguments. Give me the essential takeaways:\n\n"${text}"`
       },
       
       eli5: {
         name: 'ELI5',
         icon: '👶',
         description: 'Explain Like I\'m 5',
-        systemPrompt: 'You explain like talking to a 5-year-old. Use only simple, common words. Maximum 3-5 SHORT sentences total. Each sentence must be under 15 words. Include ONE fun comparison or analogy. No complex concepts.',
-        userPrompt: (text) => `In 3-5 simple sentences (each under 15 words), explain this like I\'m 5:\n\n"${text}"\n\nRules: Simple words only. One fun comparison. Maximum 5 sentences, each under 15 words.`
+        systemPrompt: `You explain complex things using simple language and familiar comparisons that a child would understand. You're playful and clear, using everyday objects and situations to illuminate big ideas. Never condescending, always delightful.`,
+        userPrompt: (text) => `Explain this in the simplest possible way, like you're talking to a curious 5-year-old. Use familiar things they'd know about - toys, animals, everyday life. Make it fun and easy to picture:\n\n"${text}"`
       },
       
       factcheck: {
@@ -92,7 +116,11 @@ class PromptManager {
     const messages = [
       {
         role: 'system',
-        content: mode.systemPrompt + (varietyHints ? `\n\n${varietyHints}` : '')
+        content: [
+          mode.systemPrompt,
+          `Style guardrails: ${this.styleGuardrails}`,
+          varietyHints ? `${varietyHints}` : null
+        ].filter(Boolean).join('\n\n')
       },
       {
         role: 'user',
@@ -126,28 +154,28 @@ class PromptManager {
   getVarietyHint(modeKey) {
     const hints = {
       explain: [
-        'Use a practical example or analogy to illustrate the concept.',
-        'Start with a relatable scenario that demonstrates the concept.',
-        'Frame the explanation through a real-world lens.',
-        'Connect the concept to everyday experiences.'
+        'Lead with the core insight, then one quick example if helpful.',
+        'Use a concise, concrete analogy only if it adds clarity.',
+        'Prefer concrete language over abstractions.',
+        'Focus on what changes in understanding.'
       ],
       eli5: [
-        'Use an analogy with toys, animals, or everyday objects.',
-        'Compare it to something from a child\'s daily life.',
-        'Use a simple story or scenario to explain.',
-        'Relate it to playing games or simple activities.'
+        'Use one small, familiar comparison—keep it brief.',
+        'Keep sentences short and direct without baby talk.',
+        'Describe with everyday objects the child already knows.',
+        'Skip long scene-setting; get straight to the point.'
       ],
       summarize: [
-        'Focus on the actionable takeaways.',
-        'Highlight the most surprising or important aspects.',
-        'Emphasize the practical implications.',
-        'Extract the core message or thesis.'
+        'Capture the core message in plain language.',
+        'Prefer substance over structure—no filler.',
+        'Cut repetition and throat-clearing.',
+        'Include only what a skim-reader must know.'
       ],
       keyPoints: [
-        'Prioritize by impact or importance.',
-        'Focus on what would be most useful to remember.',
-        'Extract both facts and insights.',
-        'Balance detail with clarity.'
+        'Use a short bullet list of essentials only if clearer than a paragraph.',
+        'Make each point standalone and useful.',
+        'Combine key facts with actionable insights.',
+        'Order by importance.'
       ]
     };
     
@@ -339,7 +367,7 @@ class PromptManager {
    * Create all buttons based on content (V2 compatible)
    */
   createContentButtons(text) {
-    if (!this.useContextAware) {
+    if (!this.useContextAware || !this.contentAnalyzer || !this.contextActions) {
       // Return legacy buttons
       return {
         buttons: this.createAllButtons(),
@@ -348,9 +376,15 @@ class PromptManager {
     }
     
     const contextData = this.getContextActions(text);
-    const buttons = contextData.actions.map(action => 
-      this.createContextButton(action, contextData.contentType)
-    );
+    // Handle legacy fallback shape (array of modes)
+    if (Array.isArray(contextData)) {
+      return {
+        buttons: this.createAllButtons(),
+        contentType: 'general'
+      };
+    }
+    const actions = Array.isArray(contextData.actions) ? contextData.actions : [];
+    const buttons = actions.map(action => this.createContextButton(action, contextData.contentType));
     
     return {
       buttons: buttons,
