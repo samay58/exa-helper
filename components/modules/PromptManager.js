@@ -35,10 +35,41 @@ class PromptManager {
       'Write with energy and specificity; avoid bland generalities.',
       'End with a complete sentence; do not end with trailing ellipses (…).'
     ].join(' ');
+    // Minimal inline SVG icon set (mono-weight, currentColor)
+    const ICONS = {
+      explain: `
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <circle cx="12" cy="12" r="2" fill="currentColor"/>
+          <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/>
+        </svg>`,
+      summarize: `
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M6 7.5h12M6 12h10M6 16.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>`,
+      keyPoints: `
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <circle cx="7" cy="8" r="1.5" fill="currentColor"/>
+          <path d="M10 8h8M10 12h8M10 16h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <circle cx="7" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="7" cy="16" r="1.5" fill="currentColor"/>
+        </svg>`,
+      simplify: `
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>`,
+      factcheck: `
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="6" y="4" width="12" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M9 9h6M9 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M12 16l1.6 1.6L16.5 14.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`
+    };
+
     this.modes = {
       explain: {
         name: 'Explain',
-        icon: '💡',
+        icon: ICONS.explain,
         description: 'Clear, intuitive explanation',
         systemPrompt: `Your explanations are crisp, memorable, clear and intuitive. Use analogies and examples only when they truly help.Keep it conversational but insightful.`,
         userPrompt: (text) => `Give me a clear, intuitive explanation of this concept / highlighted text. Focus on making it truly click for me - what's the key insight here? Make it high quality and intuitive:\n\n"${text}"`
@@ -46,7 +77,7 @@ class PromptManager {
       
       summarize: {
         name: 'Summarize',
-        icon: '📝',
+        icon: ICONS.summarize,
         description: 'Concise summary of content',
         systemPrompt: `You create sharp, scannable summaries that capture what actually matters. You have a gift for distilling complexity into clarity without losing nuance. Your summaries feel complete yet effortless to read - never bloated, never missing the point.`,
         userPrompt: (text) => `Summarize this content, capturing the essential points and main thrust. Be concise but complete - give me exactly what I need to understand what this is about:\n\n"${text}"`
@@ -54,23 +85,23 @@ class PromptManager {
       
       keyPoints: {
         name: 'Key Points',
-        icon: '🔑',
+        icon: ICONS.keyPoints,
         description: 'Extract main ideas',
         systemPrompt: `You have a laser focus for what truly matters. You extract the core ideas that someone would highlight or remember - the insights that change understanding, the facts that drive decisions, the concepts that everything else builds on.`,
         userPrompt: (text) => `Extract the key points from this text - the ideas that matter most, the insights worth remembering, the core facts or arguments. Give me the essential takeaways:\n\n"${text}"`
       },
       
       eli5: {
-        name: 'ELI5',
-        icon: '👶',
-        description: 'Explain Like I\'m 5',
+        name: 'Simplify',
+        icon: ICONS.simplify,
+        description: 'Explain simply and clearly',
         systemPrompt: `You explain complex things using simple language and familiar comparisons that a 10 year old would understand.`,
         userPrompt: (text) => `Explain this in the simplest possible way, like you're talking to a curious 10-year-old.\n\n"${text}"`
       },
       
       factcheck: {
         name: 'Fact Check',
-        icon: '🔍',
+        icon: ICONS.factcheck,
         description: 'Verify with Exa',
         systemPrompt: 'You are a meticulous fact-checker with expertise in identifying claims that require verification. You distinguish between facts, opinions, and speculation. You understand the importance of source credibility and context in evaluating truth claims.',
         userPrompt: (text) => `Analyze this text for factual claims that should be verified:\n\n1. **Extract specific claims** (facts presented as true)\n2. **Categorize each claim** (statistical, historical, scientific, etc.)\n3. **Assess verification priority** (which claims are most important to verify?)\n4. **Suggest verification approach** (what sources or methods would best verify each claim?)\n\nBe specific about numbers, dates, names, and technical assertions.\n\nText to fact-check:\n"${text}"`,

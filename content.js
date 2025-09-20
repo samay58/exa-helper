@@ -185,6 +185,18 @@ function handleKeyboard(e) {
     }
   }
   
+  // Command Palette: Cmd/Ctrl + K
+  if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k')) {
+    e.preventDefault();
+    openCommandPalette();
+  }
+
+  // Focus Mode: Cmd/Ctrl + Enter
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    openFocusMode();
+  }
+
   // Escape to close popup
   if (e.key === 'Escape' && popupWindow) {
     closePopup();
@@ -246,6 +258,16 @@ function showFAB(x, y) {
     }
   }
   fabButton.style.display = 'block';
+
+  // Update FAB badge with approx word count
+  try {
+    const words = (selectedText || '').trim().split(/\s+/).filter(Boolean).length;
+    const badge = fabButton.querySelector('.bobby-fab-badge');
+    if (badge) {
+      if (words > 0) { badge.textContent = words > 999 ? '1k+' : String(words); badge.style.display = 'inline-flex'; }
+      else { badge.style.display = 'none'; }
+    }
+  } catch (_) {}
   
   // Add show animation
   requestAnimationFrame(() => {
@@ -286,12 +308,98 @@ function createFAB() {
   
   if (document.body) {
     document.body.appendChild(fabButton);
+    // Badge for word count
+    const badge = document.createElement('span');
+    badge.className = 'bobby-fab-badge';
+    badge.style.display = 'none';
+    fabButton.appendChild(badge);
   }
   
   // Apply adaptive theme if enabled
   if (themeManager && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_ADAPTIVE_THEME) {
     themeManager.applyTheme(fabButton);
   }
+}
+
+// Command palette overlay
+function openCommandPalette() {
+  if (document.querySelector('.bobby-cmdk-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'bobby-cmdk-overlay';
+  const card = document.createElement('div');
+  card.className = 'bobby-cmdk-card';
+  card.innerHTML = `
+    <input class="bobby-cmdk-input" placeholder="Type a command… (e.g., explain, summarize, key points, simplify, fact check, focus)" />
+    <div class="bobby-cmdk-list"></div>
+  `;
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const input = card.querySelector('.bobby-cmdk-input');
+  const list = card.querySelector('.bobby-cmdk-list');
+  const commands = [
+    { id: 'explain', label: 'Explain' },
+    { id: 'summarize', label: 'Summarize' },
+    { id: 'keyPoints', label: 'Key Points' },
+    { id: 'eli5', label: 'Simplify' },
+    { id: 'factcheck', label: 'Fact Check' },
+    { id: 'focus', label: 'Focus Mode' }
+  ];
+  const render = (q = '') => {
+    const term = q.trim().toLowerCase();
+    const items = commands.filter(c => c.label.toLowerCase().includes(term) || c.id.includes(term));
+    list.innerHTML = items.map((c, i) => `<button class="bobby-cmdk-item" data-id="${c.id}" ${i===0?'data-active="true"':''}>${c.label}</button>`).join('');
+  };
+  render('');
+  input.focus();
+
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  overlay.addEventListener('keydown', (e) => {
+    const items = Array.from(list.querySelectorAll('.bobby-cmdk-item'));
+    let idx = items.findIndex(el => el.hasAttribute('data-active'));
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (idx < items.length - 1) { items[idx]?.removeAttribute('data-active'); items[++idx].setAttribute('data-active','true'); } return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); if (idx > 0) { items[idx]?.removeAttribute('data-active'); items[--idx].setAttribute('data-active','true'); } return; }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const active = items.find(el => el.hasAttribute('data-active')) || items[0];
+      if (active) executeCommand(active.getAttribute('data-id'));
+      close();
+    }
+  });
+  input.addEventListener('input', (e) => render(e.target.value));
+  list.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bobby-cmdk-item');
+    if (!btn) return;
+    executeCommand(btn.getAttribute('data-id'));
+    close();
+  });
+}
+
+function executeCommand(id) {
+  if (id === 'focus') { openFocusMode(); return; }
+  switchMode(id);
+}
+
+// Focus Mode overlay
+function openFocusMode() {
+  if (!popupWindow) return;
+  const existing = document.querySelector('.bobby-focus-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'bobby-focus-overlay';
+  const card = document.createElement('div');
+  card.className = 'bobby-focus-card';
+  const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
+  const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
+  card.innerHTML = resultDiv ? resultDiv.innerHTML : '<div style="padding:20px">No content yet</div>';
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function onEsc(ev){ if (ev.key==='Escape'){ close(); document.removeEventListener('keydown', onEsc); }}, { once: true });
 }
 
 // Hide floating action button
@@ -448,6 +556,14 @@ async function showPopup() {
   
   // Add to page
   document.body.appendChild(popupWindow);
+  try {
+    const pm = new window.PromptManager();
+    const ctx = pm.analyzeContent(selectedText);
+    if (ctx && (ctx.contentType || ctx.primary?.type)) {
+      const type = ctx.contentType || ctx.primary.type;
+      popupWindow.setAttribute('data-context-type', type);
+    }
+  } catch (_) {}
   
   // Apply adaptive theme if enabled (but not in Rauno mode)
   if (themeManager && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_ADAPTIVE_THEME && !useRauno) {
