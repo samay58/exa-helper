@@ -1613,7 +1613,14 @@ function displayFollowUpAnswer(question, answer, sources = []) {
     ? `
       <div class="bobby-sources-rail">
         <div class="bobby-sources-title">Sources
-          <button class="bobby-sources-menu-btn" title="More"></button>
+          <div class="bobby-sources-controls">
+            <div class="bobby-sort-toggle" role="tablist" aria-label="Sort sources">
+              <button class="bobby-sort-btn active" data-sort="used" role="tab" aria-selected="true">Used</button>
+              <button class="bobby-sort-btn" data-sort="confidence" role="tab" aria-selected="false">Confidence</button>
+              <button class="bobby-sort-btn" data-sort="date" role="tab" aria-selected="false">Date</button>
+            </div>
+            <button class="bobby-sources-menu-btn" title="More"></button>
+          </div>
         </div>
         <div class="bobby-sources-chips">
           ${sources.slice(0, 5).map((s, idx) => {
@@ -1677,6 +1684,39 @@ function displayFollowUpAnswer(question, answer, sources = []) {
 
   // Attach hover previews for source chips
   attachSourceTooltips(resultDiv, sources);
+
+  // Sorting control
+  const chipContainer = resultDiv.querySelector('.bobby-sources-chips');
+  const sortBtns = resultDiv.querySelectorAll('.bobby-sort-btn');
+  if (chipContainer && sortBtns.length) {
+    sortBtns.forEach(btn => btn.addEventListener('click', () => {
+      sortBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+      const mode = btn.getAttribute('data-sort');
+      const sorted = [...sources];
+      if (mode === 'confidence') {
+        sorted.sort((a,b) => (b.score||0) - (a.score||0));
+      } else if (mode === 'date') {
+        sorted.sort((a,b) => new Date(b.publishedDate||0) - new Date(a.publishedDate||0));
+      } // 'used' = original order
+      chipContainer.innerHTML = sorted.slice(0,5).map((s, idx) => {
+        let domain = ''; try { domain = new URL(s.url).hostname.replace('www.',''); } catch(_) {}
+        const title = s.title || domain || `Source ${idx+1}`;
+        const truncated = title.length > 60 ? title.substring(0,57) + '…' : title;
+        const pct = (typeof s.score === 'number') ? Math.round((s.score <= 1 ? s.score * 100 : s.score)) : null;
+        const date = (s.publishedDate ? new Date(s.publishedDate) : null);
+        const dateBadge = date ? `${date.toLocaleString(undefined,{month:'short'})} ${date.getFullYear()}` : '';
+        const confBadge = (pct !== null && !Number.isNaN(pct)) ? `${pct}%` : '';
+        return `
+          <a href="${s.url}" target="_blank" rel="noopener" class="bobby-source-chip-v2" title="${ui.escapeHtml(title)}">
+            <span class="bobby-source-favicon"><img src="https://www.google.com/s2/favicons?domain=${domain}&sz=16" alt="" onerror="this.style.display='none'" /></span>
+            <span class="bobby-source-title">${ui.escapeHtml(truncated)}</span>
+            ${dateBadge || confBadge ? `<span class="bobby-source-badges">${dateBadge ? `<span class=\"bobby-badge bobby-badge-date\">${dateBadge}</span>` : ''}${confBadge ? `<span class=\"bobby-badge bobby-badge-conf\">${confBadge}</span>` : ''}</span>` : ''}
+          </a>`;
+      }).join('') + (sorted.length > 5 ? `<span class="bobby-source-more">+${sorted.length - 5}</span>` : '');
+      attachSourceTooltips(resultDiv, sorted);
+    }));
+  }
 
   // Sources “more” menu: Open all / Copy links
   const sourcesMenuBtn = resultDiv.querySelector('.bobby-sources-menu-btn');
