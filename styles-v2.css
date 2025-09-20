@@ -1,36 +1,7 @@
 /* Bobby Chrome Extension - V2 Modern Visual Design */
 /* Glassmorphism, Spring Animations, and Context-Aware Styling */
 
-/* Optional web fonts (prefer local or bundled). If you add .woff2 files to assets/fonts,
-   these @font-face rules will pick them up. Otherwise the stack falls back gracefully. */
-@font-face {
-  font-family: 'Arizona';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: local('Arizona'), url('assets/fonts/Arizona-Variable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Geist';
-  font-style: normal;
-  font-weight: 300 800;
-  font-display: swap;
-  src: local('Geist'), url('assets/fonts/Geist-Variable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'ABCDiatype';
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: local('ABCDiatype'), url('assets/fonts/ABCDiatype-Variable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Geist Mono';
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: local('Geist Mono'), url('assets/fonts/GeistMono-Variable.woff2') format('woff2');
-}
+/* Fonts: rely on installed families or fallbacks; no webfont fetches to avoid console noise. */
 
 /* CSS Variables for V2 theming - Refined with Rauno principles */
 :root {
