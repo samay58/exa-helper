@@ -185,10 +185,12 @@ function handleKeyboard(e) {
     }
   }
   
-  // Command Palette: Cmd/Ctrl + K
-  if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k')) {
-    e.preventDefault();
-    openCommandPalette();
+  // Command Palette: Cmd/Ctrl + K (gated by flag)
+  if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_COMMAND_PALETTE) {
+    if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k')) {
+      e.preventDefault();
+      openCommandPalette();
+    }
   }
 
   // Focus Mode: Cmd/Ctrl + Enter

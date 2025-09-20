@@ -60,6 +60,7 @@ const CONFIG = {
     USE_ADAPTIVE_THEME: false,    // Enable page-adaptive theming
     USE_WEB_SEARCH: true,         // Use Anthropic Web Search tool for primary modes
     USE_HAPTIC_FEEDBACK: false,   // Enable haptic feedback on mobile
+    USE_COMMAND_PALETTE: false    // Disable Cmd/Ctrl+K command palette by default
   },
   
   // Debug Settings
