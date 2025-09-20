@@ -242,7 +242,7 @@
 
 .bobby-popup-rauno {
   position: fixed;
-  background: var(--rauno-bg-base);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)), var(--rauno-bg-base);
   /* Subtle background-only blur for weightless depth */
   backdrop-filter: blur(var(--rauno-blur-md)) saturate(120%);
   -webkit-backdrop-filter: blur(var(--rauno-blur-md)) saturate(120%);
@@ -266,7 +266,10 @@
   animation: raunoPopupReveal var(--rauno-duration-normal) var(--rauno-ease-smooth) forwards;
   
   /* Subtle grain texture */
-  &::before {
+}
+
+/* Grain overlay (non-nested for broad browser support) */
+.bobby-popup-rauno::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -274,7 +277,22 @@
     background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' /%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 1;
-  }
+}
+
+/* Accent corner glows and inner keylines */
+.bobby-popup-rauno::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(600px 300px at 0% -10%, rgba(245,158,11,0.08), transparent 60%),
+    radial-gradient(400px 240px at 110% 0%, rgba(245,158,11,0.06), transparent 55%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  z-index: 1;
 }
 
 @keyframes raunoPopupReveal {
@@ -330,10 +348,18 @@
   z-index: 10;
   
   /* Subtle background */
-  background: var(--rauno-bg-subtle);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
   
   /* Soft shadow for depth */
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Faint top keyline accent */
+.bobby-header-rauno::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
 }
 
 .bobby-header-rauno:active {
@@ -527,7 +553,7 @@
   display: flex;
   gap: 0;
   padding: var(--rauno-space-0-5);
-  background: var(--rauno-bg-muted);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
   border: 1px solid var(--rauno-border-subtle);
   border-radius: var(--rauno-radius-lg);
   position: relative;
@@ -560,11 +586,12 @@
 
 /* Active state with sliding indicator */
 .bobby-mode-btn-rauno.active {
-  background: var(--rauno-bg-base);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
   color: var(--rauno-text-primary);
   box-shadow: 
-    var(--rauno-shadow-sm),
-    0 0 0 1px var(--rauno-border-subtle);
+    0 4px 12px rgba(251,146,60,0.14),
+    inset 0 0 0 1px rgba(251,146,60,0.25),
+    var(--rauno-shadow-sm);
   font-weight: 600;
 }
 
@@ -655,6 +682,16 @@
   /* Custom scrollbar */
   scrollbar-width: thin;
   scrollbar-color: var(--rauno-border-subtle) transparent;
+}
+
+/* Subtle vignette to focus content */
+.bobby-content-rauno::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.04), transparent 60%);
+  z-index: 0;
 }
 
 /* Webkit scrollbar styling */
@@ -791,11 +828,7 @@
    ANALYSIS RESULT - Premium Card
    ============================================ */
 .bobby-analysis-rauno {
-  background: linear-gradient(
-    135deg,
-    var(--rauno-bg-subtle),
-    var(--rauno-bg-muted)
-  );
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
   border: 1px solid var(--rauno-border-subtle);
   border-radius: var(--rauno-radius-lg);
   padding: var(--rauno-space-5);
@@ -805,7 +838,7 @@
   /* Layered shadow for depth */
   box-shadow: 
     var(--rauno-shadow-md),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   
   /* Smooth entrance */
   animation: raunoAnalysisReveal var(--rauno-duration-normal) var(--rauno-ease-smooth);

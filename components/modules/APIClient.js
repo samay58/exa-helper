@@ -148,43 +148,70 @@ class APIClient {
     }
     
     try {
-      const response = await this.makeRequest('https://api.exa.ai/search', {
+      // Primary: x-api-key header + camelCase body
+      const body = {
+        query,
+        numResults: options.numResults || 5,
+        useAutoprompt: options.useAutoprompt !== false,
+        type: options.type || 'neural',
+        includeDomains: options.includeDomains,
+        excludeDomains: options.excludeDomains,
+        startPublishedDate: options.startDate,
+        endPublishedDate: options.endDate,
+        contents: { text: true }
+      };
+
+      let response = await this.makeRequest('https://api.exa.ai/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.EXA_API_KEY}`
+          'x-api-key': this.config.EXA_API_KEY
         },
-        body: JSON.stringify({
-          query: query,
-          num_results: options.numResults || 5,
-          use_autoprompt: options.useAutoprompt !== false,
-          type: options.type || 'neural',
-          include_domains: options.includeDomains,
-          exclude_domains: options.excludeDomains,
-          start_published_date: options.startDate,
-          end_published_date: options.endDate
-        })
+        body: JSON.stringify(body)
       });
-      
+
+      // Fallbacks
+      if (!response.ok && (response.status === 402 || response.status === 400 || response.status === 401 || response.status === 403)) {
+        // Authorization header variant
+        response = await this.makeRequest('https://api.exa.ai/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.config.EXA_API_KEY}`
+          },
+          body: JSON.stringify(body)
+        });
+      }
+      if (!response.ok && (response.status === 402 || response.status === 400)) {
+        // keyword type without autoprompt
+        const body2 = { ...body, type: 'keyword', useAutoprompt: false };
+        response = await this.makeRequest('https://api.exa.ai/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': this.config.EXA_API_KEY
+          },
+          body: JSON.stringify(body2)
+        });
+      }
+
       if (!response.ok) {
         throw new Error(`Exa API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
-      // Process and enhance results
-      const sources = data.results.map(result => ({
-        title: result.title,
-        url: result.url,
-        snippet: result.snippet || result.text,
-        publishedDate: result.published_date,
+
+      // Normalize
+      const sources = (data.results || []).map(result => ({
+        title: result.title || result.name || '',
+        url: result.url || result.link || '',
+        snippet: result.snippet || result.text || result.content || (result.contents && (result.contents.text || result.contents.snippet)) || '',
+        publishedDate: result.published_date || result.publishedDate,
         score: result.score,
         author: result.author
       }));
-      
-      // Cache the results
+
       this.addToCache(cacheKey, sources);
-      
       return { sources, fromCache: false };
     } catch (error) {
       console.error('Exa API error:', error);

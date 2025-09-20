@@ -3,10 +3,14 @@
 
 // Import configuration
 let CONFIG = null;
+let LAST_CONFIG_LOAD = 0;
 
 // Load configuration
-async function loadConfig() {
+async function loadConfig(force = false) {
   try {
+    if (!force && CONFIG && Date.now() - LAST_CONFIG_LOAD < 60000) {
+      return; // use cached config (<=60s)
+    }
     // First try to load from config.js
     const response = await fetch(chrome.runtime.getURL('config.js'));
     const configText = await response.text();
@@ -60,6 +64,7 @@ async function loadConfig() {
       hasAnthropic: !!CONFIG.ANTHROPIC_API_KEY && CONFIG.ANTHROPIC_API_KEY !== 'sk-ant-api03-YOUR-ANTHROPIC-API-KEY-HERE',
       useAnthropic: CONFIG.USE_ANTHROPIC
     });
+    LAST_CONFIG_LOAD = Date.now();
     
     // Validate API keys on load
     if (CONFIG.USE_ANTHROPIC && CONFIG.ANTHROPIC_API_KEY && 
@@ -84,7 +89,7 @@ async function loadConfig() {
 
 // Initialize on installation
 chrome.runtime.onInstalled.addListener(async () => {
-  await loadConfig();
+  await loadConfig(true);
   console.log('Bobby Extension installed successfully');
 
   // Create context menu item safely (avoid duplicate id errors on reloads)
@@ -124,7 +129,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   (async () => {
     try {
       // Always reload config to ensure we have the latest API keys
-      await loadConfig();
+      await loadConfig(false);
       
       // Handle the message
       await handleMessageAsync(request, sender, sendResponse);
@@ -172,10 +177,38 @@ async function handleMessageAsync(request, sender, sendResponse) {
     case 'validateApiKey':
       await handleValidateApiKey(request, sendResponse);
       break;
+    
+    case 'loadOptionalModules':
+      await handleLoadOptionalModules(request, sender, sendResponse);
+      break;
       
     default:
       sendResponse({ success: false, error: 'Unknown action' });
       break;
+  }
+}
+
+// Dynamically inject optional modules into the content script world for this tab
+async function handleLoadOptionalModules(request, sender, sendResponse) {
+  try {
+    const tabId = sender?.tab?.id;
+    if (!tabId) {
+      sendResponse({ success: false, error: 'No tabId available for injection' });
+      return;
+    }
+    const files = Array.isArray(request.files) ? request.files.filter(Boolean) : [];
+    if (files.length === 0) {
+      sendResponse({ success: true, injected: 0 });
+      return;
+    }
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files
+    });
+    sendResponse({ success: true, injected: files.length });
+  } catch (e) {
+    console.error('Bobby: Failed to inject optional modules:', e);
+    sendResponse({ success: false, error: e?.message || String(e) });
   }
 }
 
@@ -231,6 +264,11 @@ async function handleAnthropicRequest(text, mode, systemPrompt, userPrompt, send
     // Use custom system prompt if provided, otherwise use default
     const systemMessage = systemPrompt || 'You are Bobby, a helpful AI assistant. Be concise and direct. Avoid lengthy explanations. Get straight to the point.';
     
+    // Decide if we should enable Anthropic Web Search tool
+    const featureFlags = CONFIG?.FEATURE_FLAGS || {};
+    const webSearchEligibleModes = new Set(['explain', 'summarize', 'keyPoints', 'proscons', 'technical']);
+    const enableWebSearch = !!featureFlags.USE_WEB_SEARCH && webSearchEligibleModes.has(String(mode || '').trim());
+
     // Prepare request body with proper Anthropic message structure
     const requestBody = {
       model: CONFIG.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620',
@@ -244,6 +282,12 @@ async function handleAnthropicRequest(text, mode, systemPrompt, userPrompt, send
       max_tokens: mode === 'eli5' ? 400 : (mode === 'summarize' ? 300 : 600),
       temperature: mode === 'extractClaims' || mode === 'factcheck' ? 0.1 : 0.7
     };
+
+    if (enableWebSearch) {
+      // Enable Anthropic's web search tool for better grounded answers
+      requestBody.tools = [{ type: 'web_search' }];
+      requestBody.tool_choice = 'auto';
+    }
     
     console.log('Bobby: Sending request to Anthropic API');
     console.log('Bobby: Request model:', requestBody.model);
@@ -282,7 +326,7 @@ async function handleAnthropicRequest(text, mode, systemPrompt, userPrompt, send
     }
     
     const data = await response.json();
-    const result = data.content[0].text;
+    const result = data.content && data.content[0] && data.content[0].text ? data.content[0].text : (data.output_text || '');
     
     // Cache the response
     await cacheResponse(cacheKey, result);
@@ -375,68 +419,86 @@ async function handleOpenAIRequest(text, mode, systemPrompt, userPrompt, sendRes
   }
 }
 
-// Exa API handler for fact-checking
-async function handleFactCheck(request, sendResponse) {
-  const { text } = request;
-  
-  try {
-    const response = await fetch('https://api.exa.ai/search', {
+// Internal: robust Exa search with header + payload fallbacks
+async function exaSearchCore(query, { numResults = 5, useAutoprompt = true, type = 'neural' } = {}) {
+  const url = 'https://api.exa.ai/search';
+  const primaryPayload = {
+    query,
+    numResults,
+    useAutoprompt,
+    type,
+    contents: { text: true }
+  };
+
+  // Try 1: x-api-key header + camelCase
+  let res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CONFIG.EXA_API_KEY
+    },
+    body: JSON.stringify(primaryPayload)
+  });
+
+  // Fallback 1: Authorization: Bearer header
+  if (!res.ok && (res.status === 401 || res.status === 403 || res.status === 402 || res.status === 400)) {
+    res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CONFIG.EXA_API_KEY}`
       },
-      body: JSON.stringify({
-        query: text,
-        num_results: 5,
-        use_autoprompt: true,
-        type: 'neural',
-        contents: {
-          text: true
-        }
-      })
+      body: JSON.stringify(primaryPayload)
     });
-    
-    if (!response.ok) {
-      throw new Error(`Exa API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    sendResponse({ success: true, sources: data.results });
+  }
+
+  // Fallback 2: type keyword, no autoprompt (some plans restrict neural/autoprompt)
+  if (!res.ok && (res.status === 402 || res.status === 400)) {
+    const fallbackPayload = { ...primaryPayload, type: 'keyword', useAutoprompt: false };
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CONFIG.EXA_API_KEY
+      },
+      body: JSON.stringify(fallbackPayload)
+    });
+  }
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`Exa API error: ${res.status}${err ? ` - ${err}` : ''}`);
+  }
+
+  const data = await res.json();
+  // Normalize results to include text/snippet consistently
+  const results = (data.results || []).map(r => ({
+    title: r.title || r.name || '',
+    url: r.url || r.link || '',
+    text: r.text || r.snippet || r.content || (r.contents && (r.contents.text || r.contents.snippet)) || ''
+  }));
+  return results;
+}
+
+// Exa API handler for fact-checking (simple search wrapper)
+async function handleFactCheck(request, sendResponse) {
+  const { text } = request;
+  try {
+    const results = await exaSearchCore(text, { numResults: 5, useAutoprompt: true, type: 'neural' });
+    sendResponse({ success: true, sources: results });
   } catch (error) {
     console.error('Error in handleFactCheck:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
 
-// Exa Search API handler (for fact-checking)
+// Exa Search API handler (used by HallucinationDetector)
 async function handleExaSearch(request, sendResponse) {
   const { query, num_results = 5 } = request;
   
   try {
-    const response = await fetch('https://api.exa.ai/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CONFIG.EXA_API_KEY}`
-      },
-      body: JSON.stringify({
-        query,
-        num_results,
-        use_autoprompt: true,
-        type: 'neural',
-        contents: {
-          text: true
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Exa API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    sendResponse({ success: true, results: data.results });
+    const results = await exaSearchCore(query, { numResults: num_results, useAutoprompt: true, type: 'neural' });
+    sendResponse({ success: true, results });
   } catch (error) {
     console.error('Error in handleExaSearch:', error);
     sendResponse({ success: false, error: error.message });
@@ -445,11 +507,11 @@ async function handleExaSearch(request, sendResponse) {
 
 // Handle Exa Answer API for follow-up questions
 async function handleExaAnswer(request, sendResponse) {
-  const { question, context } = request;
-  
+  const { question } = request;
+
   try {
-    // Use Exa search with context
-    const response = await fetch('https://api.exa.ai/search', {
+    // Call Exa Answer endpoint for grounded answers with structured citations
+    const response = await fetch('https://api.exa.ai/answer', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -457,24 +519,29 @@ async function handleExaAnswer(request, sendResponse) {
       },
       body: JSON.stringify({
         query: question,
-        num_results: 3,
-        use_autoprompt: true,
-        type: 'neural',
-        contents: {
-          text: true
-        }
+        text: true
       })
     });
-    
+
     if (!response.ok) {
-      throw new Error(`Exa API error: ${response.status}`);
+      const err = await response.text().catch(() => '');
+      throw new Error(`Exa Answer error: ${response.status}${err ? ` - ${err}` : ''}`);
     }
-    
+
     const data = await response.json();
-    
-    // Use GPT to synthesize answer from search results
-    const answer = await synthesizeAnswer(question, data.results);
-    sendResponse({ success: true, answer, sources: data.results });
+
+    // Normalize citations -> sources array with number field
+    const citations = Array.isArray(data.citations) ? data.citations : [];
+    const sources = citations.map((c, idx) => ({
+      number: idx + 1,
+      title: c.title || c.name || c.url || `Source ${idx + 1}`,
+      url: c.url,
+      snippet: c.text || c.snippet || '',
+      publishedDate: c.publishedDate || c.published_date || null,
+      score: typeof c.score === 'number' ? c.score : (typeof c.confidence === 'number' ? c.confidence : null)
+    }));
+
+    sendResponse({ success: true, answer: data.answer || '', sources });
   } catch (error) {
     console.error('Error in handleExaAnswer:', error);
     sendResponse({ success: false, error: error.message });
@@ -593,6 +660,7 @@ async function handleSaveApiKeys(request, sendResponse) {
   try {
     await chrome.storage.local.set({ apiConfig: keys });
     CONFIG = { ...CONFIG, ...keys };
+    LAST_CONFIG_LOAD = Date.now();
     sendResponse({ success: true });
   } catch (error) {
     console.error('Error saving API keys:', error);

@@ -1,9 +1,29 @@
 /* Bobby Chrome Extension - V2 Modern Visual Design */
 /* Glassmorphism, Spring Animations, and Context-Aware Styling */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+/* Optional web fonts (prefer local or bundled). If you add .woff2 files to assets/fonts,
+   these @font-face rules will pick them up. Otherwise the stack falls back gracefully. */
+@font-face {
+  font-family: 'Arizona';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: local('Arizona'), url('assets/fonts/Arizona-Variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'ABCDiatype';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: local('ABCDiatype'), url('assets/fonts/ABCDiatype-Variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: local('Geist Mono'), url('assets/fonts/GeistMono-Variable.woff2') format('woff2');
+}
 
 /* CSS Variables for V2 theming - Refined with Rauno principles */
 :root {
@@ -123,16 +143,17 @@
   --bobby-adaptive-text-secondary: #6b7280;
   --bobby-adaptive-bg: rgba(255, 255, 255, 0.95);
   
-  /* Typography - Swiss precision */
-  --bobby-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --bobby-font-mono: 'JetBrains Mono', 'SF Mono', Consolas, 'Courier New', monospace;
+  /* Typography families (Rauno-proportioned stacks) */
+  --bobby-font-display: 'Arizona', 'Georgia', 'Times', serif;
+  --bobby-font-body: 'ABCDiatype', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --bobby-font-mono: 'Geist Mono', 'SF Mono', 'JetBrains Mono', Consolas, 'Courier New', monospace;
   
   /* Font weights - Restrained */
   --bobby-font-normal: 400;
   --bobby-font-medium: 500;
   --bobby-font-semibold: 600;
   
-  /* Perfect Fourth Type Scale */
+  /* Perfect Fourth Type Scale (harmonized across families) */
   --bobby-text-2xs: 11px;
   --bobby-text-xs: 12px;
   --bobby-text-sm: 14px;
@@ -234,6 +255,18 @@
   will-change: transform, opacity;
   transform-style: preserve-3d;
   backface-visibility: hidden;
+}
+
+/* Stronger blur + lighter glass in light mode for true liquid-glass look */
+@media (prefers-color-scheme: light) {
+  :root {
+    --liquid-glass-base: rgba(248, 250, 255, 0.78);
+    --liquid-glass-hover: rgba(250, 252, 255, 0.84);
+  }
+  .bobby-popup-v2 {
+    backdrop-filter: blur(var(--bobby-blur-xl)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--bobby-blur-xl)) saturate(140%);
+  }
 }
 
 /* Multi-layer glass effect */
@@ -347,10 +380,10 @@
   border: none;
   border-radius: var(--te-radius);
   color: var(--bobby-adaptive-text);
-  font-family: var(--te-font-mono);
-  font-size: var(--te-font-size);
-  font-weight: 400;
-  letter-spacing: var(--te-letter-spacing);
+  font-family: var(--bobby-font-display);
+  font-size: 15px; /* Slightly smaller than body for crisp, dense buttons */
+  font-weight: 600;
+  letter-spacing: -0.01em;
   text-transform: none;
   cursor: pointer;
   transition: all var(--te-transition-fast) var(--te-transition-spring);
@@ -1148,7 +1181,7 @@ pre {
   position: relative;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  min-height: 120px;
+  min-height: 112px;
 }
 
 /* Dark mode header gradient */
@@ -1205,6 +1238,34 @@ pre {
   border-left: 1px solid var(--bobby-glass-border);
 }
 
+/* Header icon buttons: compact, elegant squares */
+.bobby-header-actions .bobby-icon-btn,
+.bobby-header-actions .bobby-action,
+.bobby-header .bobby-icon-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--bobby-glass-border);
+  color: var(--bobby-adaptive-text);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.bobby-header-actions .bobby-icon-btn:hover,
+.bobby-header-actions .bobby-action:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.bobby-header-actions .bobby-state-success { background: var(--bobby-gradient-success); color: white; }
+.bobby-header-actions .bobby-state-error { background: #ef4444; color: white; }
+
 /* Context Preview - More subtle */
 .bobby-selected-context {
   padding: 12px 20px;
@@ -1249,16 +1310,17 @@ pre {
 }
 
 .bobby-context-label {
-  font-size: var(--bobby-text-xs);
-  font-weight: 500;
+  font-family: var(--bobby-font-display);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--bobby-adaptive-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .bobby-context-preview {
-  font-family: var(--bobby-font-mono);
-  font-size: var(--bobby-text-sm);
+  font-family: var(--bobby-font-body);
+  font-size: 15px;
   color: var(--bobby-adaptive-text);
   flex: 1;
 }
@@ -1311,6 +1373,111 @@ pre {
   /* Ensure no text blur; keep background-only effects to container */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* Inline citation pills */
+.bobby-inline-citation {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: none;
+  color: var(--bobby-accent);
+  background: rgba(251, 146, 60, 0.12);
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  margin: 0 2px;
+}
+
+.bobby-inline-citation:hover {
+  background: rgba(251, 146, 60, 0.18);
+}
+
+/* Sources rail under answer */
+.bobby-sources-rail {
+  margin: 16px 0 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--bobby-glass-border);
+}
+
+.bobby-sources-title {
+  font-size: var(--bobby-text-xs);
+  color: var(--bobby-adaptive-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bobby-sources-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bobby-source-more {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bobby-glass-border);
+  color: var(--bobby-adaptive-text-secondary);
+  font-size: 12px;
+}
+
+.bobby-sources-menu-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--bobby-glass-border);
+  background: rgba(255,255,255,0.12);
+  cursor: pointer;
+  position: relative;
+}
+.bobby-sources-menu-btn::before { content: '⋯'; font-size: 16px; line-height: 1; color: var(--bobby-adaptive-text-secondary); }
+.bobby-sources-menu { position: absolute; z-index: 50; background: var(--bobby-glass-bg); border:1px solid var(--bobby-glass-border); border-radius: 10px; box-shadow: var(--bobby-shadow-lg); overflow:hidden; }
+.bobby-sources-menu button { display:block; width: 160px; padding: 10px 12px; border:none; background:transparent; color: var(--bobby-adaptive-text); text-align:left; cursor:pointer; }
+.bobby-sources-menu button:hover { background: rgba(255,255,255,0.1); }
+
+/* Source badges (date + confidence) */
+.bobby-source-chip-v2 { position: relative; }
+.bobby-source-badges { position: absolute; top: -6px; right: -6px; display:flex; gap:4px; }
+.bobby-badge { font-size: 10px; padding: 2px 6px; border-radius: 9999px; border:1px solid var(--bobby-glass-border); background: rgba(255,255,255,0.18); color: var(--bobby-adaptive-text-secondary); }
+.bobby-badge-conf { background: rgba(16,185,129,0.15); color:#10b981; border-color: rgba(16,185,129,0.35); }
+.bobby-badge-date { background: rgba(255,255,255,0.14); }
+
+/* Chip hover tooltip (glass) */
+.bobby-chip-tooltip { position:absolute; max-width: 420px; padding:10px 12px; border-radius:10px; background: var(--bobby-glass-bg); border:1px solid var(--bobby-glass-border); color: var(--bobby-adaptive-text); box-shadow: var(--bobby-shadow-lg); pointer-events:none; font-size: 12px; line-height: 1.4; }
+
+/* Hide preview text when expanded */
+.bobby-context-header.expanded .bobby-context-preview:empty { display:none; }
+
+/* Answer meta row */
+.bobby-answer-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bobby-grounded-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 /* Analysis Content V2 */
@@ -1384,7 +1551,7 @@ pre {
 /* Markdown Styling V2 */
 .bobby-markdown-v2,
 .bobby-markdown {
-  font-family: var(--bobby-font-sans);
+  font-family: var(--bobby-font-body);
   color: var(--bobby-adaptive-text);
   /* Remove separate background - let parent handle it */
   background: transparent;
@@ -1543,8 +1710,8 @@ pre {
   border: none;
   border-radius: var(--te-radius);
   color: var(--bobby-adaptive-text-secondary);
-  font-family: var(--te-font-mono);
-  font-size: var(--te-font-size);
+  font-family: var(--bobby-font-display);
+  font-size: 15px;
   font-weight: 400;
   letter-spacing: var(--te-letter-spacing);
   cursor: pointer;
@@ -2081,6 +2248,18 @@ pre {
 /* Main Container */
 .bobby-fc-container {
   padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.bobby-fc-container::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(1200px 600px at 80% -10%, rgba(255, 148, 114, 0.12), transparent 60%),
+              radial-gradient(900px 500px at -10% 120%, rgba(124, 58, 237, 0.12), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Hero Section - Verdict Display */
@@ -2088,6 +2267,8 @@ pre {
   padding: 24px;
   text-align: center;
   border-bottom: 1px solid var(--glass-border);
+  position: relative;
+  z-index: 1;
 }
 
 .bobby-fc-verdict {
@@ -2128,13 +2309,15 @@ pre {
 /* Claims List */
 .bobby-fc-claims {
   padding: 16px 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .bobby-fc-claim {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 0;
+  flex-direction: column;
+  row-gap: 8px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--glass-border);
 }
 
@@ -2142,31 +2325,14 @@ pre {
   border-bottom: none;
 }
 
-.bobby-fc-status {
-  flex-shrink: 0;
-  font-size: 18px;
-  margin-top: 2px;
-}
+.bobby-fc-claim-row { display: flex; align-items: center; gap: 8px; }
+.bobby-fc-claim-icon { font-size: 16px; }
 
-.bobby-fc-text {
-  flex: 1;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-primary);
-}
+.bobby-fc-text { font-size: 14px; line-height: 1.5; color: var(--text-primary); }
 
-.bobby-fc-source {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--accent-primary);
-  text-decoration: none;
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
-}
-
-.bobby-fc-source:hover {
-  opacity: 1;
-}
+.bobby-fc-sources { display: flex; flex-wrap: wrap; gap: 8px; }
+.bobby-fc-source-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:9999px; background: var(--glass-bg-light); border:1px solid var(--glass-border); color: var(--text-secondary); text-decoration:none; transition: transform var(--bobby-anim-fast) ease, opacity var(--bobby-anim-fast) ease; }
+.bobby-fc-source-chip:hover { transform: translateY(-1px); opacity: 0.95; }
 
 .bobby-fc-claim-success .bobby-fc-status {
   color: rgb(74, 222, 128);
@@ -2188,6 +2354,8 @@ pre {
   padding: 16px 24px;
   background: var(--glass-bg-light);
   border-top: 1px solid var(--glass-border);
+  position: relative;
+  z-index: 1;
 }
 
 .bobby-fc-note-icon {
@@ -3357,6 +3525,7 @@ pre {
   width: 120px;
   height: 120px;
   animation: bobby-ring-appear var(--bobby-anim-medium) ease-out;
+  --bobby-ring-angle: -90deg;
 }
 
 @keyframes bobby-ring-appear {
@@ -3389,6 +3558,7 @@ pre {
   stroke-linecap: round;
   stroke-dasharray: 0 339.3;
   transition: stroke-dasharray 1s ease-out;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 8px rgba(255, 169, 122, 0.25));
 }
 
 .bobby-fc-ring-content {
@@ -3397,6 +3567,21 @@ pre {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
+}
+
+.bobby-fc-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, #fff, #ffd0b4);
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 0 4px rgba(255,169,122,0.35);
+  transform: translate(-50%, -50%) rotate(var(--bobby-ring-angle)) translate(54px);
+  transform-origin: center;
+  transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .bobby-fc-score {

@@ -305,8 +305,37 @@ class UIComponents {
     if (!html.startsWith('<')) {
       html = `<p>${html}</p>`;
     }
-    
-    return html;
+
+    // Basic sanitization: strip script/style tags and dangerous attributes
+    try {
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      const disallowedTags = new Set(['script', 'style', 'iframe', 'object', 'embed']);
+      const walk = (node) => {
+        const children = Array.from(node.children || []);
+        for (const el of children) {
+          const tag = el.tagName ? el.tagName.toLowerCase() : '';
+          if (disallowedTags.has(tag)) {
+            el.remove();
+            continue;
+          }
+          // Remove on* handlers and javascript: URLs
+          for (const attr of Array.from(el.attributes)) {
+            const name = attr.name.toLowerCase();
+            const value = String(attr.value || '');
+            if (name.startsWith('on')) el.removeAttribute(attr.name);
+            if ((name === 'href' || name === 'src') && /^javascript:/i.test(value)) {
+              el.removeAttribute(attr.name);
+            }
+          }
+          walk(el);
+        }
+      };
+      walk(template.content || template);
+      return (template.content || template).firstElementChild ? template.innerHTML : template.innerHTML || html;
+    } catch (_) {
+      return html;
+    }
   }
   
   /**

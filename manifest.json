@@ -11,7 +11,8 @@
   "permissions": [
     "storage",
     "activeTab",
-    "contextMenus"
+    "contextMenus",
+    "scripting"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
@@ -27,6 +28,9 @@
       "matches": ["<all_urls>"],
       "js": [
         "config.js",
+        "components/modules/MessageTypes.js",
+        "components/modules/BackgroundClient.js",
+        "components/modules/ConfigService.js",
         "components/modules/PromptManager.js",
         "components/modules/APIClient.js",
         "components/modules/UIComponents.js",
@@ -34,13 +38,6 @@
         "components/modules/HistoryManager.js",
         "components/modules/DragManager.js",
         "components/modules/HallucinationDetector.js",
-        "components/modules/ContentAnalyzer.js",
-        "components/modules/ContextActions.js",
-        "components/modules/ParticleEffects.js",
-        "components/modules/InteractionEffects.js",
-        "components/modules/ThemeManager.js",
-        "components/modules/RaunoEffects.js",
-        "components/modules/GridSystem.js",
         "components/modules/ModuleLoader.js",
         "content.js"
       ],
@@ -60,7 +57,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "config.js",
+        
         "components/modules/*.js",
         "assets/**/*",
         "styles-v2.css",

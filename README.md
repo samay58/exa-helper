@@ -78,6 +78,17 @@ The extension uses Manifest V3 and requires no build step. Structure:
 - `styles-v2.css` - Modern glassmorphism styles
 - `pages/` - Extension pages (history, options, popup)
 
+Additional modules for clarity:
+- `components/modules/MessageTypes.js` – central action constants.
+- `components/modules/BackgroundClient.js` – Promise wrapper for background messaging.
+- `components/modules/ConfigService.js` – unified accessors for `BOBBY_CONFIG`.
+
+Storage keys:
+- History: `bobby_history` with entries `{ id, timestamp, text, response, mode, metadata, followUps }`.
+
+Security:
+- `config.js` is not web-accessible (loaded as a content script and by background via `chrome.runtime.getURL`). Never commit real keys.
+
 ## Privacy
 
 - API keys stored locally in `config.js`

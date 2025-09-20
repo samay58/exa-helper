@@ -19,10 +19,22 @@ if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE) {
 // Wait for modules to be ready
 let modulesReady = false;
 
+// Minimal mode helper
+function isMinimal() {
+  try {
+    // Default to true if flag is undefined (opt-in to better performance by default)
+    const flags = window.BOBBY_CONFIG && window.BOBBY_CONFIG.FEATURE_FLAGS;
+    if (!flags || flags.MINIMAL_MODE === undefined) return true;
+    return !!flags.MINIMAL_MODE;
+  } catch (_) {
+    return true;
+  }
+}
+
 // Check if modules are already ready (in case this loads after ModuleLoader)
 if (window.BobbyModules || (window.PromptManager && window.APIClient)) {
   modulesReady = true;
-  console.log('Bobby: Modules already loaded, initializing content script');
+  if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Modules already loaded, initializing content script');
   // Initialize after DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -33,15 +45,17 @@ if (window.BobbyModules || (window.PromptManager && window.APIClient)) {
   // Wait for modules to be ready
   window.addEventListener('bobby-modules-ready', () => {
     modulesReady = true;
-    console.log('Bobby: Modules loaded, initializing content script');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Modules loaded, initializing content script');
     init();
   });
 }
 
 // Handle module loading errors
 window.addEventListener('bobby-modules-error', (event) => {
-  console.error('Bobby: Module loading failed:', event.detail.error);
-  console.error('Bobby: Please check your config.js file exists and is properly formatted');
+  if (window.BOBBY_CONFIG?.DEBUG_MODE) {
+    console.error('Bobby: Module loading failed:', event.detail.error);
+    console.error('Bobby: Please check your config.js file exists and is properly formatted');
+  }
 });
 
 // State management
@@ -69,58 +83,61 @@ var conversationThread = {
 
 // Initialize content script
 function init() {
-  console.log('Bobby: init() called, starting initialization...');
+  if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: init() called, starting initialization...');
   
   // Check if already initialized
   if (window.bobbyInitialized) {
-    console.log('Bobby: Already initialized, skipping...');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Already initialized, skipping...');
     return;
   }
   
   try {
     // Check if modules are available
     if (!window.ButtonManager) {
-      console.error('Bobby: ButtonManager not available, retrying...');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.error('Bobby: ButtonManager not available, retrying...');
       setTimeout(init, 100);
       return;
     }
     
     // Reset buttonManager if it was set to something else
     if (buttonManager !== null && !(buttonManager instanceof window.ButtonManager)) {
-      console.log('Bobby: buttonManager was corrupted, resetting...');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: buttonManager was corrupted, resetting...');
       buttonManager = null;
     }
     
-    console.log('Bobby: Creating ButtonManager instance...');
-    // Initialize managers
-    buttonManager = new window.ButtonManager();
-    console.log('Bobby: ButtonManager created successfully, storing in window for debugging');
-    window.bobbyButtonManager = buttonManager; // Store for debugging
+    if (!isMinimal()) {
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Creating ButtonManager instance...');
+      // Initialize managers
+      buttonManager = new window.ButtonManager();
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: ButtonManager created successfully, storing in window for debugging');
+      window.bobbyButtonManager = buttonManager; // Store for debugging
+    }
     
     // Initialize V2 modules if enabled
     if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_PARTICLE_EFFECTS && window.ParticleEffects) {
       particleEffects = new window.ParticleEffects();
-      console.log('Bobby: ParticleEffects initialized');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: ParticleEffects initialized');
     }
     
     if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_CONTEXT_AWARE && window.ContentAnalyzer) {
       contentAnalyzer = new window.ContentAnalyzer();
-      console.log('Bobby: ContentAnalyzer initialized');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: ContentAnalyzer initialized');
     }
     
     if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS && window.InteractionEffects) {
       interactionEffects = new window.InteractionEffects();
-      console.log('Bobby: InteractionEffects initialized');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: InteractionEffects initialized');
     }
     
     if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_ADAPTIVE_THEME && window.ThemeManager) {
       themeManager = new window.ThemeManager();
-      console.log('Bobby: ThemeManager initialized');
+      if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: ThemeManager initialized');
     }
     
     // Listen for text selection
-    document.addEventListener('mouseup', handleTextSelection);
-    document.addEventListener('selectionchange', handleSelectionChange);
+    // Passive listeners reduce main-thread contention during user interactions
+    document.addEventListener('mouseup', handleTextSelection, { passive: true });
+    document.addEventListener('selectionchange', handleSelectionChange, { passive: true });
     
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener(handleMessage);
@@ -134,10 +151,12 @@ function init() {
     // Mark as initialized
     window.bobbyInitialized = true;
     
-    console.log('Bobby Extension initialized successfully');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby Extension initialized successfully');
   } catch (error) {
-    console.error('Bobby: Error during initialization:', error);
-    console.error('Bobby: Stack trace:', error.stack);
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) {
+      console.error('Bobby: Error during initialization:', error);
+      console.error('Bobby: Stack trace:', error.stack);
+    }
   }
 }
 
@@ -204,7 +223,7 @@ function handleSelectionChange() {
 function showFAB(x, y) {
   // Ensure buttonManager is initialized before showing FAB
   if (!buttonManager && window.ButtonManager) {
-    console.log('Bobby: Initializing ButtonManager in showFAB...');
+    if (window.BOBBY_CONFIG?.DEBUG_MODE) console.log('Bobby: Initializing ButtonManager in showFAB...');
     buttonManager = new window.ButtonManager();
     window.bobbyButtonManager = buttonManager;
   }
@@ -213,10 +232,19 @@ function showFAB(x, y) {
     createFAB();
   }
   
-  // Position FAB near selection
-  const rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
-  fabButton.style.left = `${rect.right + 10}px`;
-  fabButton.style.top = `${rect.top - 10}px`;
+  // Position FAB near selection or fallback to pointer coordinates (avoids forced layout)
+  if (typeof x === 'number' && typeof y === 'number') {
+    fabButton.style.left = `${x + 10}px`;
+    fabButton.style.top = `${Math.max(y - 10, 10)}px`;
+  } else {
+    // Fallback only if coordinates not provided
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      fabButton.style.left = `${rect.right + 10}px`;
+      fabButton.style.top = `${rect.top - 10}px`;
+    }
+  }
   fabButton.style.display = 'block';
   
   // Add show animation
@@ -460,7 +488,7 @@ async function showPopup() {
   dragManager = new window.DragManager(popupWindow, {
     handle: useRauno ? '.bobby-header-rauno' : '.bobby-drag-handle',
     snapToEdge: true,
-    momentum: true,
+    momentum: isMinimal() ? false : true,
     onDragEnd: () => dragManager.savePosition()
   });
   
@@ -477,10 +505,10 @@ async function showPopup() {
     const useRauno = window.BOBBY_CONFIG?.FEATURE_FLAGS?.RAUNO_MODE;
     const showClass = useRauno ? 'bobby-show-rauno' : (useV2 ? 'bobby-show' : 'bobby-popup-show');
     
-    if (useRauno && window.raunoEffects) {
+    if (!isMinimal() && useRauno && window.raunoEffects) {
       // Choreographed reveal sequence
       window.raunoEffects.revealPopup(popupWindow);
-    } else if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS) {
+    } else if (!isMinimal() && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS) {
       popupWindow.classList.add(showClass);
       // Add slide-in effect
       if (interactionEffects) {
@@ -492,7 +520,7 @@ async function showPopup() {
   });
   
   // Attach interaction effects to all buttons
-  if (interactionEffects && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS) {
+  if (!isMinimal() && interactionEffects && window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_SPRING_ANIMATIONS) {
     setTimeout(() => {
       popupWindow.querySelectorAll('button').forEach(btn => {
         interactionEffects.attachToElement(btn, {
@@ -517,12 +545,16 @@ function createPromptButtons() {
   const secondaryModes = ['eli5', 'factcheck'];
   
   let allButtons;
-  if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_CONTEXT_AWARE) {
+  if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_CONTEXT_AWARE && !isMinimal()) {
     const contextData = promptManager.createContentButtons(selectedText);
-    if (popupWindow && contextData.contentType) {
-      popupWindow.classList.add(`bobby-context-${contextData.contentType}`);
+    if (contextData && Array.isArray(contextData.buttons)) {
+      if (popupWindow && contextData.contentType) {
+        popupWindow.classList.add(`bobby-context-${contextData.contentType}`);
+      }
+      allButtons = contextData.buttons;
+    } else {
+      allButtons = promptManager.createAllButtons();
     }
-    allButtons = contextData.buttons;
   } else {
     allButtons = promptManager.createAllButtons();
   }
@@ -675,8 +707,8 @@ function setupPopupEvents() {
       const clickedButton = e.currentTarget;
       clickedButton.classList.add('active', 'loading');
       
-      // Handle special actions
-      if (isSpecial && prompt === 'factcheck') {
+      // Handle fact-check directly (prefer mode, then prompt)
+      if (mode === 'factcheck' || prompt === 'factcheck') {
         showFactCheckView().finally(() => {
           // Re-enable buttons after processing
           if (allActionButtons && allActionButtons.length > 0) {
@@ -701,9 +733,22 @@ function setupPopupEvents() {
   if (contextToggle) {
     contextToggle.addEventListener('click', () => {
       const fullContext = popupWindow.querySelector('.bobby-context-full');
-      const isVisible = fullContext.style.display !== 'none';
-      fullContext.style.display = isVisible ? 'none' : 'block';
-      contextToggle.textContent = isVisible ? '▼' : '▲';
+      const header = popupWindow.querySelector('.bobby-context-header');
+      const preview = popupWindow.querySelector('.bobby-context-preview');
+      const wasVisible = fullContext.style.display !== 'none';
+      const nowVisible = !wasVisible;
+      fullContext.style.display = nowVisible ? 'block' : 'none';
+      contextToggle.textContent = nowVisible ? '▲' : '▼';
+      if (nowVisible) {
+        // Hide preview while expanded to avoid duplicate content
+        if (preview) preview.textContent = '';
+        if (header) header.classList.add('expanded');
+      } else {
+        // Restore truncated preview
+        const truncated = selectedText.length > 50 ? `${selectedText.substring(0, 50)}…` : selectedText;
+        if (preview) preview.textContent = `"${escapeHtml(truncated)}"`;
+        if (header) header.classList.remove('expanded');
+      }
     });
   }
   
@@ -767,6 +812,7 @@ async function analyzeText(mode, prompt = null) {
   }
   
   const ui = new window.UIComponents();
+  
   
   // Show loading state
   if (useRauno) {
@@ -876,10 +922,7 @@ async function showFactCheckView() {
   `;
   
   try {
-    const detector = new window.HallucinationDetector(
-      window.BOBBY_CONFIG.OPENAI_API_KEY,
-      window.BOBBY_CONFIG.EXA_API_KEY
-    );
+    const detector = new window.HallucinationDetector();
     
     // Extract claims with better error handling
     let claims;
@@ -969,6 +1012,8 @@ async function showFactCheckView() {
       displayError('Rate limit exceeded. Please wait a moment and try again.');
     } else if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('400')) {
       displayError('Invalid API key. Please check your configuration and reload the extension.');
+    } else if (error.message.includes('402')) {
+      displayError('Exa returned a 402 (payment/plan). We retried with compatible parameters; if this persists, please confirm your plan supports /search.');
     } else if (error.message.includes('quota')) {
       // Storage quota error - but fact check still completed
       console.warn('Bobby: Storage quota exceeded, but fact-check completed successfully');
@@ -1013,6 +1058,25 @@ function displayFactCheckResults(results) {
     <div class="bobby-fc-container">
       <!-- Hero Section -->
       <div class="bobby-fc-hero">
+        <div class="bobby-fc-reliability">
+          <div class="bobby-fc-ring">
+            <svg class="bobby-fc-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+              <defs>
+                <linearGradient id="bobby-fc-ring-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--bobby-accent)" />
+                  <stop offset="100%" stop-color="#ffa97a" />
+                </linearGradient>
+              </defs>
+              <circle class="bobby-fc-ring-bg" cx="60" cy="60" r="54"></circle>
+              <circle class="bobby-fc-ring-progress" cx="60" cy="60" r="54" stroke="url(#bobby-fc-ring-grad)"></circle>
+            </svg>
+            <div class="bobby-fc-knob"></div>
+            <div class="bobby-fc-ring-content">
+              <span class="bobby-fc-score">${results.overallScore}%</span>
+              <span class="bobby-fc-label">Reliability</span>
+            </div>
+          </div>
+        </div>
         <div class="bobby-fc-verdict bobby-fc-verdict-${verdictClass}">
           <span class="bobby-fc-verdict-icon">${verdictIcon}</span>
           <span class="bobby-fc-verdict-text">${verdictText}</span>
@@ -1024,26 +1088,45 @@ function displayFactCheckResults(results) {
       <div class="bobby-fc-claims">
         ${results.verifications.map((v) => {
           const statusIcon = getStatusIcon(v.assessment);
-          const statusClass = v.assessment === 'true' ? 'success' : 
-                              v.assessment === 'false' || v.assessment === 'misleading' ? 'error' : 
+          const statusLabel = getStatusLabel(v.assessment);
+          const statusClass = v.assessment === 'true' ? 'success' :
+                              v.assessment === 'false' || v.assessment === 'misleading' ? 'error' :
                               'warning';
-          
-          // Get first source for citation
-          let sourceLink = '';
-          if (v.sources && v.sources.length > 0) {
-            try {
-              const domain = new URL(v.sources[0].url).hostname.replace('www.', '');
-              sourceLink = `<a class="bobby-fc-source" href="${v.sources[0].url}" target="_blank">Source: ${domain} ↗</a>`;
-            } catch (e) {
-              sourceLink = '';
-            }
+
+          // Clean, short summary
+          let cleanSummary = v.summary || '';
+          if (cleanSummary && (cleanSummary.includes('JSON') || cleanSummary.includes('extracted claims'))) {
+            const reasonMatch = cleanSummary.match(/The claim is (.*?)(?:\.|$)/i);
+            cleanSummary = reasonMatch ? reasonMatch[0] : '';
           }
-          
+
+          // Source chips (max 4)
+          let sourcesHtml = '';
+          if (v.sources && v.sources.length > 0) {
+            const chips = v.sources.slice(0, 4).map((s) => {
+              let domain = '';
+              try { domain = new URL(s.url).hostname.replace('www.', ''); } catch (e) { domain = 'source'; }
+              return `
+                <a href="${s.url}" target="_blank" rel="noopener" class="bobby-fc-source-chip" title="${escapeHtml(s.title || domain)}">
+                  <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=16" alt="${domain}" onerror="this.style.display='none'" />
+                  <span>${domain}</span>
+                </a>
+              `;
+            }).join('');
+            const more = v.sources.length > 4 ? `<span class="bobby-source-more-v3">+${v.sources.length - 4}</span>` : '';
+            sourcesHtml = `<div class="bobby-fc-sources">${chips}${more}</div>`;
+          }
+
           return `
             <div class="bobby-fc-claim bobby-fc-claim-${statusClass}">
-              <span class="bobby-fc-status">${statusIcon}</span>
-              <span class="bobby-fc-text">${escapeHtml(v.claim)}</span>
-              ${sourceLink}
+              <div class="bobby-fc-claim-row">
+                <span class="bobby-fc-claim-icon">${statusIcon}</span>
+                <span class="bobby-fc-claim-status">${statusLabel.toUpperCase()}</span>
+                <span class="bobby-fc-claim-confidence">${v.confidence}%</span>
+              </div>
+              <p class="bobby-fc-claim-text">${escapeHtml(v.claim)}</p>
+              ${cleanSummary ? `<p class="bobby-fc-claim-summary">${escapeHtml(cleanSummary)}</p>` : ''}
+              ${sourcesHtml}
             </div>
           `;
         }).join('')}
@@ -1114,13 +1197,31 @@ function displayFactCheckResults(results) {
   
   // Display simplified fact-check results
   resultDiv.innerHTML = summaryHtml;
+  // Animate reliability ring
+  try {
+    const progress = resultDiv.querySelector('.bobby-fc-ring-progress');
+    const ringEl = resultDiv.querySelector('.bobby-fc-ring');
+    const r = 54;
+    const C = 2 * Math.PI * r;
+    if (progress) {
+      // Kick off animation in next frame
+      requestAnimationFrame(() => {
+        const pct = Math.max(0, Math.min(100, results.overallScore)) / 100;
+        progress.style.strokeDasharray = `${pct * C} ${C}`;
+        if (ringEl) {
+          const angle = -90 + pct * 360; // start at top
+          ringEl.style.setProperty('--bobby-ring-angle', angle + 'deg');
+        }
+      });
+    }
+  } catch (_) { /* noop */ }
   
   // Save fact check results to history
   window.HistoryManager.addToHistory(
     selectedText,
     JSON.stringify(results),
     'factcheck',
-    { factCheckResults: results }
+    { factCheckData: results }
   ).then(entry => {
     window.currentHistoryId = entry.id;
   });
@@ -1273,6 +1374,9 @@ function showFollowUpInput() {
     if (e.key === 'Escape') {
       e.preventDefault();
       cancelBtn.click();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitQuestion();
     }
   });
 }
@@ -1298,34 +1402,16 @@ async function handleFollowUp(question) {
   }
   
   try {
-    // Build full conversation context
-    const contextPrompt = `You are continuing a conversation about the following text:
+    // Fallback-friendly context string (kept for future engines that accept context)
+    const contextPrompt = `Original Text: "${conversationThread.originalText}"\nSource: ${conversationThread.originalUrl}`;
 
-Original Text: "${conversationThread.originalText}"
-Source: ${conversationThread.originalUrl}
-
-Previous Conversation:
-${conversationThread.conversations.map((c, i) => {
-  if (c.question) {
-    return `\nQ${i}: ${c.question}\nA${i}: ${c.answer}`;
-  } else {
-    return `\nInitial Analysis (${c.mode}): ${c.answer}`;
-  }
-}).join('\n')}
-
-Current Question: ${question}
-
-Please provide a contextual response that builds upon the previous conversation while directly addressing the current question.`;
-    
-    // Send with full context using regular analyzeText with custom prompt
+    // Use grounded follow-up via Exa Answer for high-quality citations
     let response;
     try {
       response = await chrome.runtime.sendMessage({
-        action: 'analyzeText',
-        text: conversationThread.originalText,
-        mode: 'explain',
-        systemPrompt: 'You are Bobby, a helpful AI assistant continuing a conversation. Use the full context provided to give coherent, contextual responses that build upon previous exchanges.',
-        userPrompt: contextPrompt
+        action: 'exaAnswer',
+        question: question,
+        context: contextPrompt
       });
     } catch (sendError) {
       // Handle cases where extension context is invalidated
@@ -1340,14 +1426,14 @@ Please provide a contextual response that builds upon the previous conversation 
       // Store in conversation thread
       conversationThread.conversations.push({
         question: question,
-        answer: response.result || response.answer?.content || response.answer,
+        answer: response.answer || response.result,
         mode: 'followup',
         timestamp: Date.now()
       });
       conversationThread.lastActivity = Date.now();
       
       // Display the answer with conversation context
-      displayFollowUpAnswer(question, response.result || response.answer);
+      displayFollowUpAnswer(question, response.answer || response.result, response.sources || []);
       
       // Save to history as follow-up
       if (window.currentHistoryId) {
@@ -1355,7 +1441,7 @@ Please provide a contextual response that builds upon the previous conversation 
           await window.HistoryManager.addFollowUp(
             window.currentHistoryId,
             question,
-            response.result || response.answer?.content || response.answer
+            response.answer || response.result
           );
         } catch (historyError) {
           console.warn('Bobby: Could not save follow-up to history:', historyError);
@@ -1370,7 +1456,7 @@ Please provide a contextual response that builds upon the previous conversation 
 }
 
 // Display follow-up answer
-function displayFollowUpAnswer(question, answer) {
+function displayFollowUpAnswer(question, answer, sources = []) {
   const useV2 = window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_GLASSMORPHISM;
   const resultDiv = popupWindow.querySelector(useV2 ? '.bobby-result-v2' : '.bobby-result');
   const ui = new window.UIComponents();
@@ -1378,14 +1464,18 @@ function displayFollowUpAnswer(question, answer) {
   // Handle answer as either string or object with content property
   let answerContent = typeof answer === 'string' ? answer : (answer?.content || answer);
   let formattedAnswer = ui.markdownToHtml(answerContent || 'No answer provided');
-  
-  // Then replace citation markers [1], [2], etc. with inline hyperlinks if sources exist
-  if (answer && typeof answer === 'object' && answer.sources && answer.sources.length > 0) {
-    answer.sources.forEach(source => {
-      const citationPattern = new RegExp(`\\[${source.number}\\]`, 'g');
-      const citationLink = `[<a href="${source.url}" target="_blank" rel="noopener" class="bobby-inline-citation">${source.number}</a>]`;
-      formattedAnswer = formattedAnswer.replace(citationPattern, citationLink);
-    });
+
+  // Replace [n] markers with inline citation links when sources provided
+  if (Array.isArray(sources) && sources.length > 0) {
+    for (let i = 0; i < sources.length; i++) {
+      const n = i + 1;
+      const s = sources[i];
+      const pattern = new RegExp(`\\[${n}\\]`, 'g');
+      const safeHref = s.url && s.url.startsWith('http') ? s.url : '#';
+      const title = (s.title || s.url || `Source ${n}`).replace(/"/g, '&quot;');
+      const link = `[<a href="${safeHref}" target="_blank" rel="noopener" class="bobby-inline-citation" data-citation="${n}" title="${title}">${n}</a>]`;
+      formattedAnswer = formattedAnswer.replace(pattern, link);
+    }
   }
   
   // Display in a clean, styled format similar to regular analysis
@@ -1400,9 +1490,49 @@ function displayFollowUpAnswer(question, answer) {
     </div>
   ` : '';
   
+  // Build sources rail HTML
+  const sourcesRail = (Array.isArray(sources) && sources.length)
+    ? `
+      <div class="bobby-sources-rail">
+        <div class="bobby-sources-title">Sources
+          <button class="bobby-sources-menu-btn" title="More"></button>
+        </div>
+        <div class="bobby-sources-chips">
+          ${sources.slice(0, 5).map((s, idx) => {
+            let domain = '';
+            try { domain = new URL(s.url).hostname.replace('www.', ''); } catch (_) { domain = 'source'; }
+            const title = s.title || domain || `Source ${idx + 1}`;
+            const truncated = title.length > 60 ? title.substring(0, 57) + '…' : title;
+            const pct = (typeof s.score === 'number') ? Math.round((s.score <= 1 ? s.score * 100 : s.score)) : null;
+            const date = (s.publishedDate ? new Date(s.publishedDate) : null);
+            const dateBadge = date ? `${date.toLocaleString(undefined,{month:'short'})} ${date.getFullYear()}` : '';
+            const confBadge = (pct !== null && !Number.isNaN(pct)) ? `${pct}%` : '';
+            return `
+              <a href="${s.url}" target="_blank" rel="noopener" 
+                 class="bobby-source-chip-v2" data-index="${idx}" title="${ui.escapeHtml(title)}">
+                <span class="bobby-source-favicon">
+                  <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=16" alt="" onerror="this.style.display='none'" />
+                </span>
+                <span class="bobby-source-title">${ui.escapeHtml(truncated)}</span>
+                ${dateBadge || confBadge ? `<span class="bobby-source-badges">${dateBadge ? `<span class="bobby-badge bobby-badge-date">${dateBadge}</span>` : ''}${confBadge ? `<span class="bobby-badge bobby-badge-conf">${confBadge}</span>` : ''}</span>` : ''}
+              </a>`;
+          }).join('')}
+          ${sources.length > 5 ? `<span class="bobby-source-more">+${sources.length - 5}</span>` : ''}
+        </div>
+      </div>
+    ` : '';
+
+  // Answer meta (grounding badge)
+  const metaHtml = `
+    <div class="bobby-answer-meta">
+      <span class="bobby-grounded-badge" title="Answer grounded by web sources via Exa">Grounded</span>
+    </div>
+  `;
+
   resultDiv.innerHTML = `
     <div class="${analysisClass}">
       ${threadIndicator}
+      ${metaHtml}
       <div class="bobby-followup-question">
         <strong>Q${threadCount + 1}:</strong> ${escapeHtml(question)}
       </div>
@@ -1410,6 +1540,7 @@ function displayFollowUpAnswer(question, answer) {
         <strong>A${threadCount + 1}:</strong> ${formattedAnswer}
       </div>
     </div>
+    ${sourcesRail}
     <div class="bobby-followup-section">
       <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
         <span class="bobby-followup-icon">→</span>
@@ -1425,6 +1556,74 @@ function displayFollowUpAnswer(question, answer) {
       showFollowUpInput();
     });
   }
+
+  // Attach hover previews for source chips
+  attachSourceTooltips(resultDiv, sources);
+
+  // Sources “more” menu: Open all / Copy links
+  const sourcesMenuBtn = resultDiv.querySelector('.bobby-sources-menu-btn');
+  if (sourcesMenuBtn && Array.isArray(sources) && sources.length) {
+    sourcesMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = document.createElement('div');
+      menu.className = 'bobby-sources-menu';
+      menu.innerHTML = `
+        <button data-action="open">Open all (${sources.length})</button>
+        <button data-action="copy">Copy all links</button>
+      `;
+      resultDiv.appendChild(menu);
+      // Position near button
+      const btnRect = sourcesMenuBtn.getBoundingClientRect();
+      const hostRect = resultDiv.getBoundingClientRect();
+      menu.style.left = (btnRect.left - hostRect.left - 8) + 'px';
+      menu.style.top = (btnRect.bottom - hostRect.top + 6) + 'px';
+
+      const close = () => { menu.remove(); document.removeEventListener('click', close, true); };
+      setTimeout(() => document.addEventListener('click', close, true), 0);
+      menu.addEventListener('click', async (ev) => {
+        const action = ev.target.getAttribute('data-action');
+        if (action === 'open') {
+          sources.forEach(s => { if (s.url) window.open(s.url, '_blank', 'noopener'); });
+        } else if (action === 'copy') {
+          const list = sources.map(s => `${s.title || s.url} — ${s.url}`).join('\n');
+          try { await navigator.clipboard.writeText(list); } catch (_) {}
+        }
+        close();
+      });
+    });
+  }
+}
+
+// Tooltip previews for source chips
+function attachSourceTooltips(container, sources = []) {
+  const chips = container.querySelectorAll('.bobby-source-chip-v2');
+  const tooltip = document.createElement('div');
+  tooltip.className = 'bobby-chip-tooltip';
+  tooltip.style.display = 'none';
+  container.appendChild(tooltip);
+
+  const show = (chip) => {
+    const idx = parseInt(chip.getAttribute('data-index'), 10);
+    const s = sources[idx];
+    if (!s) return;
+    const text = (s.snippet || '').trim().replace(/\s+/g, ' ');
+    if (!text) return;
+    const preview = text.length > 140 ? text.substring(0, 137) + '…' : text;
+    tooltip.innerText = preview;
+    tooltip.style.display = 'block';
+    const chipRect = chip.getBoundingClientRect();
+    const hostRect = container.getBoundingClientRect();
+    const left = Math.max(8, chipRect.left - hostRect.left - 4);
+    const top = chipRect.top - hostRect.top - tooltip.offsetHeight - 8;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = Math.max(0, top) + 'px';
+  };
+  const hide = () => { tooltip.style.display = 'none'; };
+
+  chips.forEach(chip => {
+    chip.addEventListener('mouseenter', () => show(chip));
+    chip.addEventListener('mouseleave', hide);
+  });
 }
 
 
@@ -1447,29 +1646,24 @@ function displayResult(result, fromCache = false) {
   
   const ui = new window.UIComponents();
 
-  // Fallback guardrail: enforce brevity for Explain mode (<= 50 words)
-  function enforceExplainWordLimit(text, maxWords = 50) {
+  // Normalize common stylistic tics without imposing rigid limits
+  function normalizeEnding(text) {
     try {
-      if (currentMode !== 'explain' || !text || typeof text !== 'string') return text;
-      const cleaned = text
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/`([^`]+)`/g, '$1')
-        .replace(/\s+/g, ' ')
-        .trim();
-      const words = cleaned.split(/\s+/);
-      if (words.length <= maxWords) return cleaned;
-      return words.slice(0, maxWords).join(' ') + '…';
+      if (!text || typeof text !== 'string') return text;
+      // Replace trailing ellipses with a clean period
+      const trimmed = text.replace(/(…|\.\.\.)\s*$/u, '.');
+      return trimmed;
     } catch (_) {
       return text;
     }
   }
-  const finalResult = enforceExplainWordLimit(result, 50);
+  const cleanResult = normalizeEnding(result);
   
   if (useRauno) {
     resultDiv.innerHTML = `
       <div class="bobby-analysis-rauno">
         ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
-        <div class="bobby-markdown-rauno">${ui.markdownToHtml(finalResult)}</div>
+        <div class="bobby-markdown-rauno">${ui.markdownToHtml(cleanResult)}</div>
       </div>
       <div class="bobby-followup-section">
         <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
@@ -1485,7 +1679,7 @@ function displayResult(result, fromCache = false) {
     resultDiv.innerHTML = `
       <div class="${analysisClass}">
         ${fromCache ? '<p class="bobby-cache-notice">📦 From cache</p>' : ''}
-        <div class="${markdownClass}">${ui.markdownToHtml(finalResult)}</div>
+        <div class="${markdownClass}">${ui.markdownToHtml(cleanResult)}</div>
       </div>
       <div class="bobby-followup-section">
         <button class="bobby-followup-inline-btn" aria-label="Ask follow-up question">
@@ -1619,15 +1813,7 @@ function startResizing(e) {
   e.preventDefault();
 }
 
-// Handle messages from background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'analyzeSelection' && request.text) {
-    selectedText = request.text;
-    showPopup();
-    sendResponse({ success: true });
-  }
-  return false; // Synchronous response
-});
+// Removed duplicate onMessage listener (handled earlier via handleMessage)
 
 // Utility functions
 function escapeHtml(text) {

@@ -30,7 +30,7 @@ class PromptManager {
       'Use at most one quick analogy or example if it helps—keep it short.',
       'Prefer one short paragraph; use a short bullet list only if it adds clarity.',
       'No headings unless clearly helpful; avoid boilerplate transitions like “In conclusion”.',
-      'Avoid baby talk; be friendly and direct.',
+      'Avoid baby talk; be clear and crisp.',
       'Use concrete verbs and specifics; avoid hedging like "seems", "maybe", or "likely" unless truly warranted.',
       'Write with energy and specificity; avoid bland generalities.',
       'End with a complete sentence; do not end with trailing ellipses (…).'
@@ -40,8 +40,8 @@ class PromptManager {
         name: 'Explain',
         icon: '💡',
         description: 'Clear, intuitive explanation',
-        systemPrompt: `You're a brilliant explainer who makes complex ideas click instantly. Your explanations are crisp, memorable, and feel like "aha!" moments. Use vivid analogies when they help, concrete examples when needed, and always focus on the core insight. Keep it conversational but insightful - like that friend who always explains things perfectly.`,
-        userPrompt: (text) => `Give me a clear, intuitive explanation of this concept. Focus on making it truly click for me - what's the key insight here? If an analogy helps, use one. If an example clarifies, include it. Just make it memorable and immediately understandable:\n\n"${text}"`
+        systemPrompt: `Your explanations are crisp, memorable, clear and intuitive. Use analogies and examples only when they truly help.Keep it conversational but insightful.`,
+        userPrompt: (text) => `Give me a clear, intuitive explanation of this concept / highlighted text. Focus on making it truly click for me - what's the key insight here? Make it high quality and intuitive:\n\n"${text}"`
       },
       
       summarize: {
@@ -64,8 +64,8 @@ class PromptManager {
         name: 'ELI5',
         icon: '👶',
         description: 'Explain Like I\'m 5',
-        systemPrompt: `You explain complex things using simple language and familiar comparisons that a child would understand. You're playful and clear, using everyday objects and situations to illuminate big ideas. Never condescending, always delightful.`,
-        userPrompt: (text) => `Explain this in the simplest possible way, like you're talking to a curious 5-year-old. Use familiar things they'd know about - toys, animals, everyday life. Make it fun and easy to picture:\n\n"${text}"`
+        systemPrompt: `You explain complex things using simple language and familiar comparisons that a 10 year old would understand.`,
+        userPrompt: (text) => `Explain this in the simplest possible way, like you're talking to a curious 10-year-old.\n\n"${text}"`
       },
       
       factcheck: {
@@ -201,7 +201,7 @@ class PromptManager {
     return {
       key: modeKey,
       html: `
-        <button class="bobby-prompt-btn" data-mode="${modeKey}" title="${mode.description}">
+        <button class="bobby-prompt-btn" data-mode="${modeKey}" title="${mode.description}" ${mode.isSpecial ? 'data-special="true" data-prompt="factcheck"' : ''}>
           <span class="bobby-prompt-icon">${mode.icon}</span>
           <span>${mode.name}</span>
         </button>

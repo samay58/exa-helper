@@ -61,18 +61,44 @@ async function init() {
   });
 }
 
-// Load history from storage
+// Load history from storage (migrate legacy key if needed)
 async function loadHistory() {
   try {
-    const storage = await chrome.storage.local.get('bobbyHistory');
-    historyData = storage.bobbyHistory || [];
-    
+    // Read both the current and legacy keys
+    const storage = await chrome.storage.local.get(['bobby_history', 'bobbyHistory']);
+
+    let items = storage.bobby_history || [];
+
+    // Migrate from legacy key if present and current is empty
+    if ((!items || items.length === 0) && Array.isArray(storage.bobbyHistory)) {
+      const legacy = storage.bobbyHistory;
+      items = legacy.map((it) => ({
+        // Preserve existing fields and normalize
+        id: it.id || `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: it.timestamp || Date.now(),
+        text: it.text || '',
+        response: it.response || it.result || '',
+        mode: it.mode || 'explain',
+        metadata: it.metadata || {
+          url: it.url || '',
+          title: it.title || document.title || ''
+        },
+        followUps: it.followUps || []
+      }));
+
+      // Write migrated data to the new key and remove legacy key
+      await chrome.storage.local.set({ bobby_history: items });
+      await chrome.storage.local.remove('bobbyHistory');
+    }
+
+    historyData = items;
+
     // Sort by date initially
     historyData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
+
     // Update stats
     updateStatistics();
-    
+
     // Apply filters and render
     applyFiltersAndRender();
   } catch (error) {
@@ -112,7 +138,7 @@ function applyFiltersAndRender() {
     const query = searchQuery.toLowerCase();
     filteredData = filteredData.filter(item => 
       item.text.toLowerCase().includes(query) ||
-      item.result.toLowerCase().includes(query) ||
+      (item.response || '').toLowerCase().includes(query) ||
       (item.followUps && item.followUps.some(f => 
         f.question.toLowerCase().includes(query) ||
         f.answer.toLowerCase().includes(query)
@@ -201,7 +227,7 @@ function createHistoryItem(item) {
       </div>
       
       <div class="history-item-preview">
-        ${escapeHtml(getPreview(item.result))}
+        ${escapeHtml(getPreview(item.response || ''))}
       </div>
       
       <div class="history-item-meta">
@@ -242,14 +268,14 @@ function showDetails(item) {
     <div class="modal-section">
       <div class="modal-section-title">Analysis Result</div>
       <div class="bobby-markdown">
-        ${markdownToHtml(item.result)}
+        ${markdownToHtml(item.response || '')}
       </div>
     </div>
   `;
   
   // Add fact check data if available
-  if (item.mode === 'factcheck' && item.metadata && item.metadata.factCheckData) {
-    const data = item.metadata.factCheckData;
+  if (item.mode === 'factcheck' && item.metadata && (item.metadata.factCheckData || item.metadata.factCheckResults)) {
+    const data = item.metadata.factCheckData || item.metadata.factCheckResults;
     content += `
       <div class="modal-section">
         <div class="modal-section-title">Fact Check Results</div>
@@ -304,7 +330,7 @@ function showDetails(item) {
       <div class="bobby-meta">
         <p><strong>Date:</strong> ${date.toLocaleString()}</p>
         <p><strong>Mode:</strong> ${getModeLabel(item.mode)}</p>
-        <p><strong>URL:</strong> ${item.url || 'Unknown'}</p>
+        <p><strong>URL:</strong> ${item.metadata && item.metadata.url ? item.metadata.url : 'Unknown'}</p>
         ${item.favorite ? '<p><strong>Status:</strong> ⭐ Favorited</p>' : ''}
       </div>
     </div>
@@ -344,7 +370,7 @@ function handleFilter(e) {
 
 // Copy to clipboard
 async function copyToClipboard(item) {
-  const text = `${item.text}\n\n---\n\n${item.result}`;
+  const text = `${item.text}\n\n---\n\n${item.response || ''}`;
   
   try {
     await navigator.clipboard.writeText(text);
@@ -360,7 +386,7 @@ async function toggleFavorite(item) {
   item.favorite = !item.favorite;
   
   try {
-    await chrome.storage.local.set({ bobbyHistory: historyData });
+    await chrome.storage.local.set({ bobby_history: historyData });
     updateStatistics();
     applyFiltersAndRender();
     showToast(item.favorite ? 'Added to favorites' : 'Removed from favorites');
@@ -378,7 +404,7 @@ async function deleteItem(item) {
   
   try {
     historyData = historyData.filter(h => h.id !== item.id);
-    await chrome.storage.local.set({ bobbyHistory: historyData });
+    await chrome.storage.local.set({ bobby_history: historyData });
     updateStatistics();
     applyFiltersAndRender();
     showToast('Item deleted');
@@ -414,7 +440,7 @@ async function handleClearAll() {
   }
   
   try {
-    await chrome.storage.local.set({ bobbyHistory: [] });
+    await chrome.storage.local.set({ bobby_history: [] });
     historyData = [];
     updateStatistics();
     applyFiltersAndRender();

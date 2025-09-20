@@ -50,12 +50,15 @@ const CONFIG = {
 
   // Visual Upgrade Feature Flags (set to true to enable new features)
   FEATURE_FLAGS: {
+    // Performance-first minimal mode: disables non-essential effects and animations
+    MINIMAL_MODE: true,         // Enable lighter UI/logic for better performance
     USE_CONTEXT_AWARE: false,     // Enable context-aware action buttons
     USE_GLASSMORPHISM: false,     // Enable glassmorphism visual effects
     USE_PARTICLE_EFFECTS: false,  // Enable particle animations on hover
     USE_SPRING_ANIMATIONS: false, // Enable spring physics animations
     USE_LEGACY_UI: true,          // Use original UI (disable for v2)
     USE_ADAPTIVE_THEME: false,    // Enable page-adaptive theming
+    USE_WEB_SEARCH: true,         // Use Anthropic Web Search tool for primary modes
     USE_HAPTIC_FEEDBACK: false,   // Enable haptic feedback on mobile
   },
   
