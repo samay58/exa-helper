@@ -24,8 +24,13 @@ class UIComponents {
     if (this.useV2) {
       return this.createGlassmorphismLoader(text);
     }
+    const mascot = (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_MASCOT) ?
+      `<div class="bobby-loader-mascot">
+         <img src="${chrome.runtime.getURL('assets/mascot/bobby-mascot.png')}" alt="Bobby"/>
+       </div>` : '';
     return `
       <div class="bobby-loader">
+        ${mascot}
         <div class="bobby-spinner"></div>
         <p>${this.escapeHtml(text)}</p>
       </div>
@@ -36,9 +41,14 @@ class UIComponents {
    * Create glassmorphism loader (V2)
    */
   createGlassmorphismLoader(text = 'Loading...') {
+    const mascot = (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_MASCOT) ?
+      `<div class="bobby-loader-mascot">
+         <img src="${chrome.runtime.getURL('assets/mascot/bobby-mascot.png')}" alt="Bobby"/>
+       </div>` : '';
     return `
       <div class="bobby-loader-v2">
         <div class="bobby-loader-v2-container">
+          ${mascot}
           <div class="bobby-loader-v2-spinner"></div>
           <p class="bobby-loader-v2-text">${this.escapeHtml(text)}</p>
           <div class="bobby-loader-dots">

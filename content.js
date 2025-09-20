@@ -558,6 +558,19 @@ async function showPopup() {
   
   // Add to page
   document.body.appendChild(popupWindow);
+  // Optional: add mascot cameo in header (minimal, floats gently)
+  try {
+    if (window.BOBBY_CONFIG?.FEATURE_FLAGS?.USE_MASCOT) {
+      const header = popupWindow.querySelector('.bobby-header');
+      if (header) {
+        const mascot = document.createElement('img');
+        mascot.src = chrome.runtime.getURL('assets/mascot/bobby-mascot.png');
+        mascot.alt = 'Bobby mascot';
+        mascot.className = 'bobby-mascot';
+        header.insertBefore(mascot, header.querySelector('.bobby-header-actions'));
+      }
+    }
+  } catch (_) {}
   try {
     const pm = new window.PromptManager();
     const ctx = pm.analyzeContent(selectedText);
